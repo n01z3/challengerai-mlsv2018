@@ -24,11 +24,12 @@ def main(args):
     with open(args.ann_file) as infile, open(osp.join(working_dir, "stats.txt"), "w") as outfile:
         for line in infile:
             sp_line = line.split(",")
-            #drop files that doesnt exists
+            #drop files that doesnt exist
             filepath = osp.join(args.train_dir, sp_line[0])
+            
             if not osp.exists(filepath):
                 continue
-
+            
             if len(sp_line) > 2:
                 multi_label += 1
             for el in sp_line:
@@ -36,16 +37,13 @@ def main(args):
                      labels[int(el)] += 1
                 except (ValueError, TypeError):
                     files += 1
-        
-        print("labels")
-        print(labels)
         for i in range(len(labels)):
             #print("label: {} | tag: {} | files: {}".format(i, tags[i], labels[i]))
             print("| {} | {} | {} |".format(i, tags[i], labels[i]))
             outfile.write("label: {} | tag: {} | files: {} \n".format(i, tags[i], labels[i]))
         outfile.write("amount of files: {}, files with more than 1 label: {} ".format(files, multi_label))
-        #outfile.flush() 
-        #outfile.close()
+        outfile.flush() 
+        outfile.close()
 if __name__ == '__main__':
     #parameters?
     parser = argparse.ArgumentParser(description="collect the labels statistic ")
