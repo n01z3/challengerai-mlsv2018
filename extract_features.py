@@ -68,6 +68,7 @@ def main(args):
     model.eval()
 
     mkdir_if_missing(args.out_dir)
+    print(model)
 
     with torch.no_grad():
         for i, (input, fname, tag) in enumerate(data_loader):
@@ -75,10 +76,10 @@ def main(args):
             input = input.cuda()
             output = torch.squeeze(model(input))
             tag = torch.unsqueeze(tag.float(), dim = 1)
-            features = torch.cat((tag, output.float()), dim = 1)
+            features = torch.cat((tag, output.cpu().float()), dim = 1)
             
-            print(features.size())
-            print(features)
+            if i % 1000 = 0:
+                print('[{}/{}]'.format(i, len(data_loader)))
 
             torch.save(features, osp.join(args.out_dir, 'torch_features_{}.th'.format(i)))
 
