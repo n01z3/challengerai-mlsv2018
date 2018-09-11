@@ -78,7 +78,7 @@ def main(args):
             tag = torch.unsqueeze(tag.float(), dim = 1)
             features = torch.cat((tag, output.cpu().float()), dim = 1)
             
-            if i % 1000 = 0:
+            if i % 1000 == 0:
                 print('[{}/{}]'.format(i, len(data_loader)))
 
             torch.save(features, osp.join(args.out_dir, 'torch_features_{}.th'.format(i)))
