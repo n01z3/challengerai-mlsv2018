@@ -87,7 +87,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Triplet loss classification")
+    parser = argparse.ArgumentParser(description="Features extractor")
     # data
 
 

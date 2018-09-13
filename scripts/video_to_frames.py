@@ -24,7 +24,7 @@ def main(args):
         for line in infile:
             sp_line = line.split(",")
             file_name = sp_line[0]
-            filepath = osp.join(args.train_dir, file_name)
+            filepath = osp.join(args.data_dir, file_name)
             if osp.exists(filepath):
                 n_file = +1
                 cap = cv2.VideoCapture(filepath)
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     #parameters?
     parser = argparse.ArgumentParser(description="collect the labels statistic ")
     parser.add_argument('--ann_file', type=str, metavar='PATH', help = "path to the annotation file")
-    parser.add_argument('--train_dir', type=str, metavar='PATH', help = "path to the train folder")
+    parser.add_argument('--data_dir', type=str, metavar='PATH', help = "path to the data folder")
     parser.add_argument('--out_dir', type = str, metavar='PATH', help = "path to the output folder")
     
 
