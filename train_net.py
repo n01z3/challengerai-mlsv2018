@@ -14,7 +14,7 @@ from torch import nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
-from utils.data.preprocessor import Preprocessor
+from utils.data.preprocessor import Preprocessor, TrainPreprocessor
 
 import models
 import errno
@@ -68,12 +68,12 @@ def get_data(train_data_dir, train_ann_file, val_data_dir, val_ann_file, height,
 
 
     val_loader = DataLoader(
-        Preprocessor(val_data_dir, val_labels, transform=test_transformer),
+        TrainPreprocessor(val_data_dir, val_labels, transform=test_transformer),
         batch_size=batch_size, num_workers=workers,
         shuffle=False, pin_memory=False)
     
     train_loader = DataLoader(
-        Preprocessor(train_data_dir, train_labels, transform=train_transformer),
+        TrainPreprocessor(train_data_dir, train_labels, transform=train_transformer),
         batch_size=batch_size, num_workers=workers,
         shuffle=True, pin_memory=False, drop_last=True)
     
