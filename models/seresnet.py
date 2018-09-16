@@ -38,7 +38,7 @@ class SE_ResNet(nn.Module):
 
     def forward(self, x):
         for name, module in self.base._modules.items():
-            if name == 'avgpool':
+            if name == 'last_linear':
                 break
             x = module(x)
 
