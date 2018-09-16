@@ -49,7 +49,7 @@ def get_data(train_data_dir, train_ann_file, val_data_dir, val_ann_file, height,
     ])
 
     train_transformer = T.Compose([
-        T.RandomResizedCrop((height, width)),
+        T.RandomResizedCrop(224),
         T.RandomHorizontalFlip(),
         T.ToTensor(),
         normalizer,
