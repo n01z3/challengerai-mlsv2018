@@ -15,10 +15,22 @@ from torch.backends import cudnn
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
 from utils.data.preprocessor import Preprocessor, TrainPreprocessor
+from utils.logging import Logger
 
 import models
 import errno
 
+
+def dump_exp_inf(args):
+    #open logger
+
+    f = open(osp.join(args.logs_dir, 'exp_info.txt'), 'w')
+
+    f.write('experiment was run with following parameters:\n')
+    for key, value in vars(args).items():
+        f.write('{} : {} \n'.format(key, value))
+
+    f.close()
 
 
 def mkdir_if_missing(dir_path):
@@ -86,6 +98,9 @@ def main():
     torch.manual_seed(args.seed)
     cudnn.benchmark = True
     cudnn.enabled = True
+
+    sys.stdout = Logger(osp.join(args.logs_dir, 'log.txt'))
+    dump_exp_inf(args)
 
  
     train_loader, val_loader = \
@@ -300,6 +315,9 @@ if __name__ == '__main__':
                     help='GPU id to use.')
     parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
+    working_dir = osp.dirname(osp.abspath(__file__))
+    parser.add_argument('--logs-dir', type=str, metavar='PATH',
+                        default=osp.join(working_dir, 'logs'))
 
     global args
     args = parser.parse_args()
