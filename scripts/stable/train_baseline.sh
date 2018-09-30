@@ -28,7 +28,7 @@ fi
 NET=$2
 
 TRAIN_ANN_FILE="/mnt/ssd1/dataset/new_short_video_trainingset_annotations.txt.txt"
-TRAIN_DATA_DIR="mnt/ssd1/dataset/train_jpg/"
+TRAIN_DATA_DIR="/mnt/ssd1/dataset/train_jpg/"
 VAL_ANN_FILE="/mnt/ssd1/dataset/new_short_video_validationset_annotations.txt.txt"
 VAL_DATA_DIR="/mnt/ssd1/dataset/val_jpg/"
 
