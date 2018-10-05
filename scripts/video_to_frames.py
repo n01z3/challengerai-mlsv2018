@@ -7,6 +7,18 @@ import os
 import cv2
 import errno
 
+tags = ['dog', 'cat', 'mouse', 'rabbit', 'bird', 'scenery', 'local_customs',
+'dessing', 'baby', 'selfie_male', 'selfie_female', 'dessert_making',
+'seafood_making', 'streetside_snacks', 'drinks', 'hot_pot', 'claw_crane',
+'handsign_dance', 'street_dance', 'international_dance', 'pole_dance', 
+'ballet', 'square_dancing', 'folk_dance', 'drawing', 'handwriting', 'latter_art',
+'sand_drawing', 'slime', 'origami', 'knitting', 'hair_accessory', 'pottery',
+'phone_case', 'drums', 'guitar', 'piano', 'guzheng', 'violin', 'cello',
+'hulusi', 'singing', 'games', 'entertainment', 'animation' , 'word_art_voicing',
+'yoga', 'fitness', 'skateboard', 'basketball', 'parkour', 'diving', 'billiards',
+'football', 'badminton', 'table_tennis', 'brow_painting', 'eyeliner', 'skincare',
+'lipgloss', 'makeup_removal', 'nail_cosmetic', 'hair_cosmetic']
+
 def mkdir_if_missing(dir_path):
     try:
         os.makedirs(dir_path)
@@ -17,7 +29,7 @@ def mkdir_if_missing(dir_path):
 
 def main(args):
 
-    ann_out_file = osp.join(osp.split(args.out_dir)[0], 'new_{}.txt'.format(osp.basename(args.ann_file)))
+    ann_out_file = osp.join(osp.split(args.out_dir)[0], 'new_{}'.format(osp.basename(args.ann_file)))
     mkdir_if_missing(args.out_dir)
     n_file = 0
     with open(args.ann_file) as infile, open(ann_out_file, "w") as outfile:
@@ -28,32 +40,38 @@ def main(args):
             if osp.exists(filepath):
                 n_file = +1
                 cap = cv2.VideoCapture(filepath)
-                cap.set(cv2.CAP_PROP_POS_FRAMES, args.f_frame)
                 #frames = 0
-                for i in range(args.n_frames):
-                    ret, frame = cap.read()
-                    out_filepath = osp.join(args.out_dir, '{}_{}.jpg'.format(osp.splitext(file_name)[0], i))
-                    cv2.imwrite(out_filepath, frame)
-                    #save file info
-                    outfile.write('{}_{}.jpg'.format(osp.splitext(file_name)[0], i))
-                    for k in range(1, len(sp_line)):
-                        outfile.write(',{}'.format(sp_line[k]))
-                    #outfile.write('\n')
-                outfile.flush()
-                cap.release()
-                
+                #labels 
+                file_name = osp.splitext(file_name)[0]
+                for k in range(1, len(sp_line)):
+                    label = int(sp_line[k])
+
+                    #create folder for specific label
+                    mkdir_if_missing(osp.join(args.out_dir, '{}_{}'.format(tags[label], label)))
+                    #dump video
+                    n_frame = 0
+                    while True:
+                        ret, frame = cap.read()
+
+                        if ret == True:
+                            out_filepath = osp.join(args.out_dir, '{}_{}'.format(tags[label], label), '{}_{}.jpg'.format(file_name, n_frame))
+                            cv2.imwrite(out_filepath, frame)
+                            outfile.write('{}/{}_{}.jpg'.format('{}_{}'.format(tags[label], label), file_name, n_frame))
+                            outfile.write(',{}\n'.format('{}'.format(label)))
+                            n_frame += 1
+                            outfile.flush()
+                        else:
+                            cap.release()
+                            break
+
 
         outfile.close()
 
 if __name__ == '__main__':
     #parameters?
-    parser = argparse.ArgumentParser(description="collect the labels statistic ")
+    parser = argparse.ArgumentParser(description="split video to frames ")
     parser.add_argument('--ann_file', type=str, metavar='PATH', help = "path to the annotation file")
     parser.add_argument('--data_dir', type=str, metavar='PATH', help = "path to the data folder")
     parser.add_argument('--out_dir', type = str, metavar='PATH', help = "path to the output folder")
     
-
-    parser.add_argument('--f_frame', type = int, default = 0, help = "from which frame begin to split")
-    parser.add_argument('--n_frames', type  = int, default = 1, help = "how many frames we want to extract")
-
     main(parser.parse_args())

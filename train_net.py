@@ -13,6 +13,7 @@ import torch
 from torch import nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
+from torchvision.datasets import ImageFolder
 import torchvision.transforms as T
 from utils.data.preprocessor import Preprocessor, TrainPreprocessor
 from utils.logging import Logger
@@ -67,27 +68,16 @@ def get_data(train_data_dir, train_ann_file, val_data_dir, val_ann_file, height,
         normalizer,
     ])
 
-    #open annotation_file
-    val_labels = None
-    with open(val_ann_file) as infile:
-        val_labels = infile.readlines()
-    infile.close()
-
-    train_labels = None
-    with open(train_ann_file) as infile:
-        train_labels = infile.readlines()
-    infile.close()
-
+    train_loader = DataLoader(
+        ImageFolder(train_data_dir, transform = train_transformer),
+        batch_size=batch_size, num_workers=workers,
+        shuffle = True, pin_memory = False, drop_last=True)
 
     val_loader = DataLoader(
-        TrainPreprocessor(val_data_dir, val_labels, transform=test_transformer),
+        ImageFolder(val_data_dir, transform = test_transformer),
         batch_size=batch_size, num_workers=workers,
-        shuffle=False, pin_memory=False)
-    
-    train_loader = DataLoader(
-        TrainPreprocessor(train_data_dir, train_labels, transform=train_transformer),
-        batch_size=batch_size, num_workers=workers,
-        shuffle=True, pin_memory=False, drop_last=True)
+        shuffle = False, pin_memory = False)
+
     
 
     return train_loader, val_loader
@@ -296,8 +286,6 @@ if __name__ == '__main__':
                         choices=models.names())
     parser.add_argument('--val_ann_file', type=str, metavar='PATH', help = "path to the validation annotation file")
     parser.add_argument('--val_data_dir', type=str, metavar='PATH', help = "path to the validation data folder")
-    parser.add_argument('--train_ann_file', type=str, metavar='PATH', help = "path to the training annotation file")
-    parser.add_argument('--train_data_dir', type=str, metavar='PATH', help = "path to the training data folder")
     # optimizer
     parser.add_argument('--lr', type=float, default=0.0002,
                         help="learning rate of all parameters")

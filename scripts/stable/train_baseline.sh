@@ -27,10 +27,8 @@ fi
 
 NET=$2
 
-TRAIN_ANN_FILE="/mnt/ssd1/dataset/new_short_video_trainingset_annotations.txt.txt"
-TRAIN_DATA_DIR="/mnt/ssd1/dataset/train_jpg/"
-VAL_ANN_FILE="/mnt/ssd1/dataset/new_short_video_validationset_annotations.txt.txt"
-VAL_DATA_DIR="/mnt/ssd1/dataset/val_jpg/"
+TRAIN_DATA_DIR="/mnt/ssd1/dataset/train_data/"
+VAL_DATA_DIR="/mnt/ssd1/dataset/val_data/"
 
 echo "use following GPUs" $N_GPU
 
@@ -46,9 +44,7 @@ LOG="logs/baseline_`date +'%Y-%m-%d_%H-%M-%S'`/"
 
 echo Logging output to "$LOG"
 
-echo Annotation file with training data "$TRAIN_ANN_FILE"
 echo Training data dir "$TRAIN_DATA_DIR"
-echo Annotation file with validation data "$VAL_ANN_FILE"
 echo Validation data dir "$VAL_DATA_DIR"
 
 
@@ -60,7 +56,5 @@ CUDA_VISIBLE_DEVICES=$N_GPU python train_net.py \
      --width $width \
      --height $height \
      --logs-dir $LOG  \
-     --train_ann_file $TRAIN_ANN_FILE \
      --train_data_dir $TRAIN_DATA_DIR \
-     --val_ann_file $VAL_ANN_FILE \
      --val_data_dir $VAL_DATA_DIR
