@@ -52,14 +52,14 @@ def main(args):
                     n_frame = 0
                     while True:
                         ret, frame = cap.read()
-
                         if ret == True:
-                            out_filepath = osp.join(args.out_dir, '{}_{}'.format(tags[label], label), '{}_{}.jpg'.format(file_name, n_frame))
-                            cv2.imwrite(out_filepath, frame)
-                            outfile.write('{}/{}_{}.jpg'.format('{}_{}'.format(tags[label], label), file_name, n_frame))
-                            outfile.write(',{}\n'.format('{}'.format(label)))
+                            if n_frame % args.th_frame == 0:
+                                out_filepath = osp.join(args.out_dir, '{}_{}'.format(tags[label], label), '{}_{}.jpg'.format(file_name, n_frame))
+                                cv2.imwrite(out_filepath, frame)
+                                outfile.write('{}/{}_{}.jpg'.format('{}_{}'.format(tags[label], label), file_name, n_frame))
+                                outfile.write(',{}\n'.format('{}'.format(label)))
+                                outfile.flush()
                             n_frame += 1
-                            outfile.flush()
                         else:
                             cap.release()
                             break
@@ -74,5 +74,7 @@ if __name__ == '__main__':
     parser.add_argument('--ann_file', type=str, metavar='PATH', help = "path to the annotation file")
     parser.add_argument('--data_dir', type=str, metavar='PATH', help = "path to the data folder")
     parser.add_argument('--out_dir', type = str, metavar='PATH', help = "path to the output folder")
+
+    parser.add_argument('--th_frame', type = int, help = "extract each Nth frame", default = 4)
     
     main(parser.parse_args())
