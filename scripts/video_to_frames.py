@@ -29,7 +29,7 @@ def mkdir_if_missing(dir_path):
 
 def main(args):
 
-    ann_out_file = osp.join(osp.split(args.out_dir)[0], 'new_{}'.format(osp.basename(args.ann_file)))
+    ann_out_file = osp.join(osp.splitext(args.out_dir)[0], 'new_{}'.format(osp.basename(args.ann_file)))
     mkdir_if_missing(args.out_dir)
     n_file = 0
     with open(args.ann_file) as infile, open(ann_out_file, "w") as outfile:
@@ -63,7 +63,8 @@ def main(args):
                         else:
                             cap.release()
                             break
-
+                if n_file % 10 == 0:
+                    print ('{} files is processed'.format(n_file))
 
         outfile.close()
 
