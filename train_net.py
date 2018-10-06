@@ -84,9 +84,8 @@ def get_data(train_data_dir, train_ann_file, val_data_dir, val_ann_file, height,
 
 
     train_loader = DataLoader(
-        VideoTrainPreprocessor(train_data_dir, train_labels, transform=train_transformer, num_frames = 1),
-        batch_size=batch_size, num_workers=workers,
-        shuffle=True,
+        VideoTrainPreprocessor(train_data_dir, train_labels, transform=train_transformer, num_frames = 4),
+        batch_size=batch_size, num_workers=workers, shuffle=True,
         pin_memory=True, drop_last=False)
 
     val_loader = DataLoader(
@@ -138,6 +137,7 @@ def main():
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch)
+        break
 
         # evaluate on validation set
         prec1 = validate(val_loader, model, criterion)
@@ -167,6 +167,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
     for i, (input, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
+        #input = [item for sublist in input for item in sublist]
+        if input.dim() > 4:
+            input = input.reshape(input.shape[0] * input.shape[1], input.shape[2], input.shape[3], input.shape[4])
+            target = target.reshape(target.shape[0] * target.shape[1])
+
         if args.gpu is not None:
             input = input.cuda(args.gpu, non_blocking=True)
             target = target.cuda(args.gpu, non_blocking=True)

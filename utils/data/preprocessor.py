@@ -69,6 +69,8 @@ class VideoTrainPreprocessor(object):
         self.labels = labels
         self.transform = transform
         self.num_frames = num_frames
+        #self.cap = cv2.VideoCapture()
+        self.current_idx = None
 
     def __len__(self):
         return len(self.labels)
@@ -77,35 +79,47 @@ class VideoTrainPreprocessor(object):
         #print('indices')
         #print(indices)
         if isinstance(indices, (tuple, list)):
-            return [self._get_multi_items(index) for index in indices]
+            items = []
+            for index in indices:
+                items.append(*(self._get_multi_items(index)))
+            print(items)
+            return items[0]
+            #return [self._get_multi_items(index) for index in indices]
+        #print('idx:' , indices)
         return self._get_multi_items(indices)
+        
+        #return items
 
-    def _get_single_item(self, index, cap):
+    def _get_single_item(self, index,cap):
         
         #print('read index')
         cap.set(cv2.CAP_PROP_POS_FRAMES, index)
 
         ret, frame = cap.read()
-        frame = Image.fromarray(frame)
+        img = Image.fromarray(frame)
         if self.transform is not None:
-            frame = self.transform(frame)
-
-        return frame
+            img = self.transform(img)
+        
+        return img
 
     def _get_multi_items(self, index):
+        #got video index
+        
         line = self.labels[index]
 
         fname, tag, frames = line.split(",")
         fpath = osp.join(self.data_dir, fname)
 
-        t = np.random.choice(int(frames), size=self.num_frames)
 
         cap = cv2.VideoCapture(fpath)
         if self.num_frames == 1:
-            return self._get_single_item(t, cap), int(tag)
+            img = self._get_single_item(index, cap)
+            cap.release()
+            return img, int(tag)
+           
+        t = np.random.choice(int(frames), size=self.num_frames)
 
-        frames = [self._get_single_item(idx, cap) for idx in t]
-        
+        frames = torch.stack([self._get_single_item(idx, cap) for idx in t])
         
         cap.release()
         #frames = *frames
