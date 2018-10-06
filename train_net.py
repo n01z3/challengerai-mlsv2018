@@ -15,8 +15,10 @@ from torch.backends import cudnn
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 import torchvision.transforms as T
-from utils.data.preprocessor import Preprocessor, TrainPreprocessor
+from utils.data.preprocessor import Preprocessor, TrainPreprocessor, VideoTrainPreprocessor
+from utils.data.sampler import RandomFramesSampler
 from utils.logging import Logger
+
 
 import models
 import errno
@@ -68,17 +70,29 @@ def get_data(train_data_dir, train_ann_file, val_data_dir, val_ann_file, height,
         normalizer,
     ])
 
+
+    #open annotation_file
+    val_labels = None
+    with open(val_ann_file) as infile:
+        val_labels = infile.readlines()
+    infile.close()
+
+    train_labels = None
+    with open(train_ann_file) as infile:
+        train_labels = infile.readlines()
+    infile.close()
+
+
     train_loader = DataLoader(
-        ImageFolder(train_data_dir, transform = train_transformer),
+        VideoTrainPreprocessor(train_data_dir, train_labels, transform=train_transformer, num_frames = 1),
         batch_size=batch_size, num_workers=workers,
-        shuffle = True, pin_memory = False, drop_last=True)
+        shuffle=True,
+        pin_memory=True, drop_last=False)
 
     val_loader = DataLoader(
-        ImageFolder(val_data_dir, transform = test_transformer),
+        VideoTrainPreprocessor(val_data_dir, val_labels, transform=test_transformer),
         batch_size=batch_size, num_workers=workers,
-        shuffle = False, pin_memory = False)
-
-    
+        shuffle=False, pin_memory=True)
 
     return train_loader, val_loader
 
@@ -101,8 +115,8 @@ def main():
 
     model = models.create(args.arch, n_classes = 63)
 
-    model = nn.DataParallel(model).cuda(args.gpu)
-    #model = nn.DataParallel(model)
+    #model = nn.DataParallel(model).cuda(args.gpu)
+    model = nn.DataParallel(model)
     
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda(args.gpu)
@@ -153,10 +167,9 @@ def train(train_loader, model, criterion, optimizer, epoch):
     for i, (input, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
-
         if args.gpu is not None:
             input = input.cuda(args.gpu, non_blocking=True)
-        target = target.cuda(args.gpu, non_blocking=True)
+            target = target.cuda(args.gpu, non_blocking=True)
 
         # compute output
         output = model(input)
@@ -284,6 +297,8 @@ if __name__ == '__main__':
     # model
     parser.add_argument('-a', '--arch', type=str, default='resnet50',
                         choices=models.names())
+    parser.add_argument('--train_ann_file', type=str, metavar='PATH', help = "path to the training annotation file")
+    parser.add_argument('--train_data_dir', type=str, metavar='PATH', help = "path to the training data folder")
     parser.add_argument('--val_ann_file', type=str, metavar='PATH', help = "path to the validation annotation file")
     parser.add_argument('--val_data_dir', type=str, metavar='PATH', help = "path to the validation data folder")
     # optimizer
