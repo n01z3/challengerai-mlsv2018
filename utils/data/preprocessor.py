@@ -117,7 +117,7 @@ class VideoTrainPreprocessor(object):
             return img, int(tag)
            
         t = np.random.choice(int(frames) - 30, size=self.num_frames)
-        frames = torch.stack([self._get_single_item(idx, cap, int(frames) for idx in t])
+        frames = torch.stack([self._get_single_item(idx, cap, int(frames)) for idx in t])
         
         cap.release()
         #frames = *frames
