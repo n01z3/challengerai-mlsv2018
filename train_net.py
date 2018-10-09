@@ -114,8 +114,8 @@ def main():
 
     model = models.create(args.arch, n_classes = 63)
 
-    #model = nn.DataParallel(model).cuda(args.gpu)
-    model = nn.DataParallel(model)
+    model = nn.DataParallel(model).cuda(args.gpu)
+    #model = nn.DataParallel(model)
     
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda(args.gpu)
