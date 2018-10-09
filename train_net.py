@@ -104,7 +104,6 @@ def main():
 
     sys.stdout = Logger(osp.join(args.logs_dir, 'log.txt'))
     dump_exp_inf(args)
-
  
     train_loader, val_loader = \
         get_data(args.train_data_dir, args.train_ann_file, 
@@ -151,7 +150,7 @@ def main():
             'state_dict': model.state_dict(),
             'best_prec1': best_prec1,
             'optimizer' : optimizer.state_dict(),
-        }, is_best)
+        }, is_best, fpath=osp.join(args.logs_dir, 'checkpoint.pth.tar'))
     
 def train(train_loader, model, criterion, optimizer, epoch):
     batch_time = AverageMeter()
