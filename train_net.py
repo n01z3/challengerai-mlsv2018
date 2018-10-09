@@ -24,10 +24,12 @@ import models
 import errno
 
 
+working_dir = osp.dirname(osp.abspath(__file__))
+
 def dump_exp_inf(args):
     #open logger
 
-    f = open(osp.join(args.logs_dir, 'exp_info.txt'), 'w')
+    f = open(osp.join(working_dir, args.logs_dir, 'exp_info.txt'), 'w')
 
     f.write('experiment was run with following parameters:\n')
     for key, value in vars(args).items():
@@ -102,7 +104,6 @@ def main():
     cudnn.benchmark = True
     cudnn.enabled = True
 
-    working_dir = osp.dirname(osp.abspath(__file__))
     sys.stdout = Logger(osp.join(working_dir, args.logs_dir, 'log.txt'))
     dump_exp_inf(args)
  
@@ -151,7 +152,7 @@ def main():
             'state_dict': model.state_dict(),
             'best_prec1': best_prec1,
             'optimizer' : optimizer.state_dict(),
-        }, is_best, fpath=osp.join(args.logs_dir, 'checkpoint.pth.tar'))
+        }, is_best, fpath=osp.join(working_dir, args.logs_dir, 'checkpoint.pth.tar'))
     
 def train(train_loader, model, criterion, optimizer, epoch):
     batch_time = AverageMeter()
@@ -322,7 +323,6 @@ if __name__ == '__main__':
                     help='GPU id to use.')
     parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
-    working_dir = osp.dirname(osp.abspath(__file__))
     parser.add_argument('--logs-dir', type=str, metavar='PATH',
                         default=osp.join(working_dir, 'logs'))
 
