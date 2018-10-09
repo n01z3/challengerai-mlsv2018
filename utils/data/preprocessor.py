@@ -103,13 +103,11 @@ class VideoTrainPreprocessor(object):
         return img
 
     def _get_multi_items(self, index):
-        #got video index
-        
+        #got video index        
         line = self.labels[index]
 
         fname, tag, frames = line.split(",")
         fpath = osp.join(self.data_dir, fname)
-
 
         cap = cv2.VideoCapture(fpath)
         if self.num_frames == 1:
@@ -118,7 +116,6 @@ class VideoTrainPreprocessor(object):
             return img, int(tag)
            
         t = np.random.choice(int(frames), size=self.num_frames)
-
         frames = torch.stack([self._get_single_item(idx, cap) for idx in t])
         
         cap.release()

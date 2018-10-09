@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 import torchvision.transforms as T
 from utils.data.preprocessor import Preprocessor, TrainPreprocessor, VideoTrainPreprocessor
-from utils.data.sampler import RandomFramesSampler
+#from utils.data.sampler import RandomFramesSampler
 from utils.logging import Logger
 
 
@@ -167,7 +167,6 @@ def train(train_loader, model, criterion, optimizer, epoch):
     for i, (input, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
-        #input = [item for sublist in input for item in sublist]
         if input.dim() > 4:
             input = input.reshape(input.shape[0] * input.shape[1], input.shape[2], input.shape[3], input.shape[4])
             target = target.reshape(target.shape[0] * target.shape[1])
