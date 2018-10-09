@@ -90,12 +90,13 @@ class VideoTrainPreprocessor(object):
         
         #return items
 
-    def _get_single_item(self, index,cap):
+    def _get_single_item(self, index, cap, frames):
         
         #print('read index')
         cap.set(cv2.CAP_PROP_POS_FRAMES, index)
 
         ret, frame = cap.read()
+
         img = Image.fromarray(frame)
         if self.transform is not None:
             img = self.transform(img)
@@ -115,8 +116,8 @@ class VideoTrainPreprocessor(object):
             cap.release()
             return img, int(tag)
            
-        t = np.random.choice(int(frames), size=self.num_frames)
-        frames = torch.stack([self._get_single_item(idx, cap) for idx in t])
+        t = np.random.choice(int(frames) - 30, size=self.num_frames)
+        frames = torch.stack([self._get_single_item(idx, cap, int(frames) for idx in t])
         
         cap.release()
         #frames = *frames
