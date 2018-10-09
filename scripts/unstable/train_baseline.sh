@@ -62,4 +62,6 @@ CUDA_VISIBLE_DEVICES=$N_GPU python train_net.py \
      --height $height \
      --logs-dir $LOG  \
      --train_data_dir $TRAIN_DATA_DIR \
-     --val_data_dir $VAL_DATA_DIR
+     --train_ann_file $TRAIN_ANN_FILE \
+     --val_data_dir $VAL_DATA_DIR \
+     --val_ann_dir $VAL_ANN_FILE
