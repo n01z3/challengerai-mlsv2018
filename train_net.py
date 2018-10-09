@@ -102,7 +102,8 @@ def main():
     cudnn.benchmark = True
     cudnn.enabled = True
 
-    sys.stdout = Logger(osp.join(args.logs_dir, 'log.txt'))
+    working_dir = osp.dirname(osp.abspath(__file__))
+    sys.stdout = Logger(osp.join(working_dir, args.logs_dir, 'log.txt'))
     dump_exp_inf(args)
  
     train_loader, val_loader = \
