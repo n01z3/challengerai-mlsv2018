@@ -107,7 +107,7 @@ class VideoTrainPreprocessor(object):
         fpath = osp.join(self.data_dir, fname)
 
         #open container
-        cap = av.open(fpath)
+        cap = av.open(fpath, mode = 'r')
         #get video stream
         video_stream = next(s for s in cap.streams if s.type == 'video')
 
@@ -119,7 +119,7 @@ class VideoTrainPreprocessor(object):
         t = np.random.choice(int(frames) - 30, size=self.num_frames)
         t = np.sort(t)
         frames = torch.stack([self._get_single_item(idx, cap, video_stream, int(frames)) for idx in t])
-        
+        cap = None
         return frames, np.repeat(int(tag), self.num_frames)
         
     def _get_single_frame(self, index, cap, video_stream, frames):
