@@ -154,10 +154,10 @@ def main():
         save_checkpoint({
             'epoch': epoch + 1,
             'arch': args.arch,
-            'state_dict': model.state_dict(),
+            'state_dict': model.module.state_dict(),
             'best_prec1': best_prec1,
             'optimizer' : optimizer.state_dict(),
-        }, is_best, fpath=osp.join(working_dir, args.logs_dir, 'checkpoint.pth.tar'))
+        }, is_best, filename=osp.join(working_dir, args.logs_dir, 'checkpoint.pth.tar'))
     
 def train(train_loader, model, criterion, optimizer, epoch):
     batch_time = AverageMeter()
