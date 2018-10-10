@@ -115,11 +115,16 @@ def main():
 
     model = models.create(args.arch, n_classes = 63)
 
-    model = nn.DataParallel(model).cuda(args.gpu)
+    if args.gpu is not None:
+        model = nn.DataParallel(model).cuda(args.gpu)
+        criterion = nn.CrossEntropyLoss().cuda(args.gpu)
+    else:
+        model = nn.DataParallel(model)
+        criterion = nn.CrossEntropyLoss()
+
     #model = nn.DataParallel(model)
     
     # define loss function (criterion) and optimizer
-    criterion = nn.CrossEntropyLoss().cuda(args.gpu)
 
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
@@ -319,7 +324,7 @@ if __name__ == '__main__':
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
     parser.add_argument('--epochs', type=int, default=150)
-    parser.add_argument('--gpu', default=0, type=int,
+    parser.add_argument('--gpu', default=None, type=int,
                     help='GPU id to use.')
     parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
