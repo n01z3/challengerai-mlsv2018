@@ -110,20 +110,21 @@ class VideoTrainPreprocessor(object):
         cap = av.open(fpath, mode = 'r')
         #get video stream
         video_stream = next(s for s in cap.streams if s.type == 'video')
+        num_frames = int(frames) - 30
 
         if self.num_frames == 1:
-            img = self._get_single_item(index, cap, video_stream, int(frames))
+            img = self._get_single_item(np.random.randint(num_frames), cap, video_stream, num_frames)
             return img, int(tag)
             #return img, int(tag)
            
-        t = np.random.choice(int(frames) - 30, size=self.num_frames)
+        t = np.random.choice(num_frames, size=self.num_frames)
         t = np.sort(t)
-        frames = torch.stack([self._get_single_item(idx, cap, video_stream, int(frames)) for idx in t])
+        frames = torch.stack([self._get_single_item(idx, cap, video_stream, num_frames) for idx in t])
         cap = None
         return frames, np.repeat(int(tag), self.num_frames)
         
     def _get_single_frame(self, index, cap, video_stream, frames):
-        cap.seek(int(int((index * AV_TIME_BASE) / video_stream.rate)), 'frame')
+        cap.seek(int(int((index * AV_TIME_BASE) / video_stream.average_rate)), 'frame')
         got_frame = False
 
         for packet in cap.demux(video_stream):
