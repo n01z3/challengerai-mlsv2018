@@ -37,7 +37,7 @@ echo "use following GPUs" $N_GPU
 height=224
 width=224
 learning_rate=$3
-bath_size=64
+bath_size=$4
 network=se_resnet50
 epochs=150
 

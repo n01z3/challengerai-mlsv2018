@@ -27,7 +27,7 @@ CUDA_VISIBLE_DEVICES=0 screen python extract_features.py --ann_file /mnt/ssd1/da
 python lightgbm_example.py --train_dir /mnt/ssd1/dataset/train_features/ --val_dir /mnt/ssd1/dataset/val_features/
 ```
 
-Network training example
+## Network training example
 ```
 python train_net.py --train_ann_file /mnt/ssd1/dataset/new_short_video_trainingset_annotations.txt.txt --train_data_dir /mnt/ssd1/dataset/train_jpg/ --val_ann_fil
 e /mnt/ssd1/dataset/new_short_video_validationset_annotations.txt.txt  --val_data_dir /mnt/ssd1/dataset/val_jpg/ -a se_resnet50
@@ -37,3 +37,7 @@ The better way
 ```
 screen ./scipts/stable/train_baseline.sh 4 se_resnet50 0.0001
 ```
+
+# NEW basseline
+```
+screen ./scripts/unstable/train_baseline.sh 4 se_resnet50 0.0001 128
