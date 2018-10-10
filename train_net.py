@@ -86,7 +86,7 @@ def get_data(train_data_dir, train_ann_file, val_data_dir, val_ann_file, height,
 
 
     train_loader = DataLoader(
-        VideoTrainPreprocessor(train_data_dir, train_labels, transform=train_transformer, num_frames = 4),
+        VideoTrainPreprocessor(train_data_dir, train_labels, transform=train_transformer, num_frames = args.n_frames),
         batch_size=batch_size, num_workers=workers, shuffle=True,
         pin_memory=True, drop_last=False)
 
@@ -304,6 +304,7 @@ if __name__ == '__main__':
     parser.add_argument('--height', type=int, default = 224)
     parser.add_argument('--width', type=int, default = 224)
     parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--n_frames', type = int, default = 4)
     # model
     parser.add_argument('-a', '--arch', type=str, default='resnet50',
                         choices=models.names())

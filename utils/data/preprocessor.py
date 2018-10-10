@@ -6,6 +6,9 @@ import torch
 import numpy as np
 import cv2
 
+import av
+from av import time_base as AV_TIME_BASE
+
 class Preprocessor(object):
     def __init__(self, data_dir, labels, transform=None):
         super(Preprocessor, self).__init__()
@@ -87,21 +90,14 @@ class VideoTrainPreprocessor(object):
             #return [self._get_multi_items(index) for index in indices]
         #print('idx:' , indices)
         return self._get_multi_items(indices)
-        
-        #return items
+            
+    def _get_single_item(self, index, cap, video_stream, frames):
+        frame = self._get_single_frame(index, cap, video_stream, frames)
 
-    def _get_single_item(self, index, cap, frames):
-        
-        #print('read index')
-        cap.set(cv2.CAP_PROP_POS_FRAMES, index)
-
-        ret, frame = cap.read()
-
-        img = Image.fromarray(frame)
         if self.transform is not None:
-            img = self.transform(img)
+            frame = self.transform(frame)
         
-        return img
+        return frame
 
     def _get_multi_items(self, index):
         #got video index        
@@ -110,18 +106,31 @@ class VideoTrainPreprocessor(object):
         fname, tag, frames = line.split(",")
         fpath = osp.join(self.data_dir, fname)
 
-        cap = cv2.VideoCapture(fpath)
+        #open container
+        cap = av.open(fpath)
+        #get video stream
+        video_stream = next(s for s in cap.streams if s.type == 'video')
+
         if self.num_frames == 1:
-            img = self._get_single_item(index, cap)
-            cap.release()
+            img = self._get_single_item(index, cap, video_stream, int(frames))
             return img, int(tag)
+            #return img, int(tag)
            
         t = np.random.choice(int(frames) - 30, size=self.num_frames)
         t = np.sort(t)
-        #print(t)
-        frames = torch.stack([self._get_single_item(idx, cap, int(frames)) for idx in t])
+        frames = torch.stack([self._get_single_item(idx, cap, video_stream, int(frames)) for idx in t])
         
-        cap.release()
-        #frames = *frames
         return frames, np.repeat(int(tag), self.num_frames)
         
+    def _get_single_frame(self, index, cap, video_stream, frames):
+        cap.seek(int(int((index * AV_TIME_BASE) / video_stream.rate)), 'frame')
+        got_frame = False
+
+        for packet in cap.demux(video_stream):
+            if not got_frame:
+                for frame in packet.decode():
+                    if frame is not None:
+                        return frame.to_image()
+                        
+
+
