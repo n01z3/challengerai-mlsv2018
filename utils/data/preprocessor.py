@@ -111,6 +111,11 @@ class VideoTrainPreprocessor(object):
         #get video stream
         video_stream = next(s for s in cap.streams if s.type == 'video')
         num_frames = int(frames) - 30
+        #fix
+        if num_frames < 0:
+            num_frames = int(frames)
+            print('debug')
+            print(fname, tag, int(frames))
 
         if self.num_frames == 1:
             img = self._get_single_item(np.random.randint(num_frames), cap, video_stream, num_frames)
