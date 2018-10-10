@@ -93,11 +93,11 @@ class VideoTrainPreprocessor(object):
             
     def _get_single_item(self, index, cap, video_stream, frames):
         frame = self._get_single_frame(index, cap, video_stream, frames)
-
+        img = frame.to_image()
         if self.transform is not None:
-            frame = self.transform(frame)
+            img = self.transform(img)
         
-        return frame
+        return img
 
     def _get_multi_items(self, index):
         #got video index        
@@ -130,7 +130,7 @@ class VideoTrainPreprocessor(object):
             if not got_frame:
                 for frame in packet.decode():
                     if frame is not None:
-                        return frame.to_image()
+                        return frame
                         
 
 
