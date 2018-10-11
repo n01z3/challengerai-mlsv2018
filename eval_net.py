@@ -81,7 +81,7 @@ def main(args):
             output = torch.squeeze(model(input))
 
             if args.gpu:
-                tags = tags.cpu()
+                tags = torch.cat(tags).cpu()
                 output = output.cpu()
 
             res = accuracy(output, tags, (args.topk,)) 
@@ -103,7 +103,7 @@ def accuracy(output, target, topk=(5,)):
 
         _, pred = output.topk(maxk, 0, True, True)
         pred = set(pred.numpy())
-        target = set(torch.cat(target).numpy())
+        target = set(target.numpy())
 
         res = len(set.intersection(pred, target)) / len(set.union(pred, target))
 
