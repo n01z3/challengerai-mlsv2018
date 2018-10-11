@@ -6,7 +6,7 @@ from torch.nn import init
 import pretrainedmodels
 from torch import load
 
-__all__ = ['SE_ResNet', 'se_resnet50', 'se_resnet101']
+__all__ = ['SE_ResNet', 'se_resnet50', 'se_resnet101', 'se_resnet50_trained']
 
 
 class SE_ResNet(nn.Module):
@@ -57,10 +57,16 @@ class SE_ResNet(nn.Module):
 def se_resnet50(weigths = None, **kwargs):
     model = SE_ResNet(50, **kwargs)
     if weigths is not None:
-        state_dict = load(weigths, map_location='cpu')['state_dict']
+        state_dict = load(weigths)['state_dict']
         model.load_state_dict(state_dict)
     return model
 
 
 def se_resnet101(**kwargs):
     return SE_ResNet(101, **kwargs)
+
+def se_resnet50_trained(**kwargs):
+    model = SE_ResNet(50,n_classes=63,**kwargs)
+    state_dict = load("/mnt/ssd1/easygold/challengerai-mlsv2018/logs/un_baseline_2018-10-10_15-47-12/checkpoint.pth.tar")["state_dict"]
+    model.load_state_dict(state_dict)
+    return model
