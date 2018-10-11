@@ -54,8 +54,12 @@ class SE_ResNet(nn.Module):
             x = self.classifier(x)
         return x
 
-def se_resnet50(**kwargs):
-    return SE_ResNet(50, **kwargs)
+def se_resnet50(weigths = None, **kwargs):
+    model = SE_ResNet(50, **kwargs)
+    if weigths is not None:
+        state_dict = load(weigths, map_location='cpu')['state_dict']
+        model.load_state_dict(state_dict)
+    return model
 
 
 def se_resnet101(**kwargs):

@@ -79,8 +79,8 @@ class VideoTrainPreprocessor(object):
         return len(self.labels)
 
     def __getitem__(self, indices):
-        #print('indices')
-        #print(indices)
+        print('indices')
+        print(indices)
         if isinstance(indices, (tuple, list)):
             items = []
             for index in indices:
@@ -118,7 +118,8 @@ class VideoTrainPreprocessor(object):
             print(fname, tag, int(frames))
 
         if self.num_frames == 1:
-            img = self._get_single_item(np.random.randint(num_frames), cap, video_stream, num_frames)
+            #make it stable for now
+            img = self._get_single_item(0, cap, video_stream, num_frames)
             return img, int(tag)
             #return img, int(tag)
            
@@ -140,3 +141,39 @@ class VideoTrainPreprocessor(object):
                         
 
 
+class VideoTestPreprocessor(VideoTrainPreprocessor):
+    def __init__(self, data_dir, labels, num_frames = 1, transform = None):
+        super(VideoTestPreprocessor, self).__init__(data_dir, labels, num_frames, transform)
+        self.data_dir = data_dir
+        self.labels = labels
+        self.transform = transform
+        self.num_frames = num_frames
+        #self.cap = cv2.VideoCapture()
+        self.current_idx = None
+
+    def _get_multi_items(self, index):
+        #got video index        
+        line = self.labels[index]
+
+        #labels in eval file should be arrange as:
+        #fname,tag_i,...,tag_n
+        sp_line = line.split(",")
+        fname = sp_line[0]
+        tags = []
+        for el in sp_line:
+            try:
+                tags.append(int(el))
+            except (ValueError, TypeError):
+                pass
+
+        fpath = osp.join(self.data_dir, fname)
+        #open container
+        cap = av.open(fpath, mode = 'r')
+        #get video stream
+        video_stream = next(s for s in cap.streams if s.type == 'video')
+
+        if self.num_frames == 1:
+            #make it stable for now
+            img = self._get_single_item(0, cap, video_stream, 0)
+            return img, tags
+            #return img, int(tag)
