@@ -88,7 +88,7 @@ def main(args):
             if args.gpu:
                 output = output.cpu()
             res = accuracy(output, tags, (args.topk,)) 
-            acc.update(res, input.size(0))
+            acc.update(res)
 
             if i % args.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
@@ -109,6 +109,7 @@ def accuracy(output, tags, topk=(5,)):
             res = 0
             for i in range(len(tags)):
                 res += ch_metric(output[i], tags[i], maxk)
+            res /= len(tags)
             return res
 
 def ch_metric(output, tags, maxk):
