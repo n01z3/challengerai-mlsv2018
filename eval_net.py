@@ -23,6 +23,12 @@ def mkdir_if_missing(dir_path):
         if e.errno != errno.EEXIST:
             raise
 
+def collate_batch(batch):
+    #print(batch)
+    out_batch = torch.stack([b[0] for b in batch], 0)
+    out_tags = [b[1] for b in batch]
+    return out_batch, out_tags
+
 def get_data(data_dir, ann_file, height, width, batch_size, workers):
 
     normalizer = T.Normalize(mean=[0.485, 0.456, 0.406],
@@ -46,7 +52,7 @@ def get_data(data_dir, ann_file, height, width, batch_size, workers):
     data_loader = DataLoader(
         VideoTestPreprocessor(data_dir, labels, transform=test_transformer),
         batch_size=batch_size, num_workers=workers,
-        shuffle=False, pin_memory=True)
+        shuffle=False, pin_memory=True, collate_fn=collate_batch)
 
     return data_loader
 
@@ -62,7 +68,7 @@ def main(args):
                  args.width, args.batch_size, args.workers)
 
 
-    model = models.create(args.arch, weigths = args.weights, n_classes = 63)
+    model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 63)
 
     if args.gpu:
         model = nn.DataParallel(model).cuda()
@@ -75,17 +81,13 @@ def main(args):
 
     with torch.no_grad():
         for i, (input, tags) in enumerate(data_loader):
-
             if args.gpu:
                 input = input.cuda()
             output = torch.squeeze(model(input))
 
             if args.gpu:
-                tags = torch.cat(tags).cpu()
                 output = output.cpu()
-
             res = accuracy(output, tags, (args.topk,)) 
-
             acc.update(res, input.size(0))
 
             if i % args.print_freq == 0:
@@ -96,19 +98,25 @@ def main(args):
         print(' * Prec@1 {acc.avg:.3f}'.format(acc=acc) )
 
 
-def accuracy(output, target, topk=(5,)):
-    """Computes the precision@k for the specified values of k"""
+def accuracy(output, tags, topk=(5,)):
     with torch.no_grad():
         maxk = max(topk)
 
-        _, pred = output.topk(maxk, 0, True, True)
-        pred = set(pred.numpy())
-        target = set(target.numpy())
+        if len(tags) == 1:
+            return ch_metric(output, tags[0], maxk)
 
-        res = len(set.intersection(pred, target)) / len(set.union(pred, target))
+        else:
+            res = 0
+            for i in range(len(tags)):
+                res += ch_metric(output[i], tags[i], maxk)
+            return res
 
-        return res
+def ch_metric(output, tags, maxk):
+    _, pred = output.topk(maxk)
+    pred = set(pred.numpy())
+    tags = set(tags)
 
+    return len(set.intersection(pred, tags)) / len(set.union(pred, tags))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Network evaluation")

@@ -173,5 +173,6 @@ class VideoTestPreprocessor(VideoTrainPreprocessor):
         if self.num_frames == 1:
             #make it stable for now
             img = self._get_single_item(0, cap, video_stream, 0)
+   
             return img, tags
             #return img, int(tag)
