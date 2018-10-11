@@ -41,3 +41,10 @@ screen ./scipts/stable/train_baseline.sh 4 se_resnet50 0.0001
 # NEW basseline
 ```
 screen ./scripts/unstable/train_baseline.sh 4 se_resnet50 0.0001 128
+```
+
+## Network evaluation example
+```
+CUDA_VISIBLE_DEVICES=2 python eval_net.py -b 32 -a se_resnet50 -w /mnt/ssd1/easygold/challengerai-mlsv2018/logs/un_baseline_2018-10-10_16-57-05/checkpoint.pth.tar --ann_fi
+le /mnt/ssd1/dataset/short_video_validationset_annotations.txt --data_dir /mnt/ssd1/dataset/val/ -t 1 --gpu
+```
