@@ -79,8 +79,6 @@ class VideoTrainPreprocessor(object):
         return len(self.labels)
 
     def __getitem__(self, indices):
-        print('indices')
-        print(indices)
         if isinstance(indices, (tuple, list)):
             items = []
             for index in indices:
