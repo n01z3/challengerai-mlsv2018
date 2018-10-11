@@ -64,7 +64,7 @@ def main(args):
 
     model = models.create(args.arch, weigths = args.weights, n_classes = 63)
 
-    if args.gpu is not None:
+    if args.gpu:
         model = nn.DataParallel(model).cuda()
     else:
         model = nn.DataParallel(model)
@@ -76,10 +76,14 @@ def main(args):
     with torch.no_grad():
         for i, (input, tags) in enumerate(data_loader):
 
-            if args.gpu is not None:
+            if args.gpu:
                 input = input.cuda()
-                tags = tags.cpu()
             output = torch.squeeze(model(input))
+
+            if args.gpu:
+                tags = tags.cpu()
+                output = output.cpu()
+
             res = accuracy(output, tags, (args.topk,)) 
 
             acc.update(res, input.size(0))
@@ -126,8 +130,8 @@ if __name__ == '__main__':
     parser.add_argument('--print-freq', '-p', default=100, type=int,
                     metavar='N', help='print frequency (default: 10)')    
 
-    parser.add_argument('--gpu', default=None, type=int,
-                    help='GPU id to use.')
+    parser.add_argument('--gpu', action='store_true',
+                        help="use gpu")
     
 
     main(parser.parse_args())
