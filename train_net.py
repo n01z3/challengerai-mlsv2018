@@ -191,8 +191,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
         # compute output
         output = model(input)
         if args.gpu is not None:
-            output.cpu()
-            target.cpu()
+            output = output.cpu()
+            target = target.cpu()
         loss = criterion(output, target)
 
         # measure accuracy and record loss
@@ -244,8 +244,8 @@ def validate(val_loader, model, criterion):
 
             # measure accuracy and record loss
             if args.gpu is not None:
-                output.cpu()
-                target.cpu()
+                output = output.cpu()
+                target = target.cpu()
             prec = accuracy(output, target, topk=4)
             for i in range(4):
                 topk[i].update(prec[i], input.size(0))
