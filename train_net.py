@@ -241,6 +241,9 @@ def validate(val_loader, model, criterion):
             loss = criterion(output, target)
 
             # measure accuracy and record loss
+            if args.gpu is not None:
+                output.cpu()
+                target.cpu()
             prec = accuracy(output, target, topk=4)
             for i in range(4):
                 topk[i].update(prec[i], input.size(0))
