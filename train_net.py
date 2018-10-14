@@ -190,7 +190,9 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         # compute output
         output = model(input)
-        #print(target.shape, output.shape)
+        if args.gpu is not None:
+            output.cpu()
+            target.cpu()
         loss = criterion(output, target)
 
         # measure accuracy and record loss
