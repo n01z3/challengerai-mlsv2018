@@ -94,7 +94,7 @@ def get_data(train_data_dir, train_ann_file, val_data_dir, val_ann_file, height,
     train_loader = DataLoader(
         VideoTrainPreprocessor(train_data_dir, train_labels, transform=train_transformer, num_frames = args.n_frames),
         batch_size=batch_size, num_workers=workers, shuffle=True,
-        pin_memory=True, drop_last=False)
+        pin_memory=True, drop_last=True)
 
     val_loader = DataLoader(
         VideoTrainPreprocessor(val_data_dir, val_labels, transform=test_transformer),
