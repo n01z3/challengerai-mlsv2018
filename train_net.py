@@ -119,7 +119,7 @@ def main():
                 args.height, args.width, args.batch_size, args.workers)
 
 
-    model = models.create(args.arch, n_classes = 63)
+    model = models.create(args.arch, n_classes = 22)
 
     if args.gpu is not None:
         model = nn.DataParallel(model).cuda(args.gpu)
@@ -197,8 +197,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         # measure accuracy and record loss
         prec = accuracy(output, target, topk=4)
-        for i in range(4):
-            topk[i].update(prec[i], input.size(0))
+        for k in range(4):
+            topk[k].update(prec[k], input.size(0))
         losses.update(loss.item(), input.size(0))
 
         # compute gradient and do SGD step
