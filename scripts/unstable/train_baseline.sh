@@ -28,9 +28,9 @@ fi
 NET=$2
 
 TRAIN_DATA_DIR="/mnt/ssd1/dataset/train/"
-TRAIN_ANN_FILE="/mnt/ssd1/dataset/train_labels.txt"
+TRAIN_ANN_FILE="/mnt/ssd1/dataset/short_video_trainingset_annotations.txt"
 VAL_DATA_DIR="/mnt/ssd1/dataset/val/"
-VAL_ANN_FILE="/mnt/ssd1/dataset/val_labels.txt"
+VAL_ANN_FILE="/mnt/ssd1/dataset/short_video_validationset_annotations.txt"
 echo "use following GPUs" $N_GPU
 
 #baseline parameters
