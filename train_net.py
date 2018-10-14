@@ -26,6 +26,12 @@ import errno
 
 working_dir = osp.dirname(osp.abspath(__file__))
 
+def collate_batch(batch):
+    #print(batch)
+    out_batch = torch.stack([b[0] for b in batch], 0)
+    out_tags = [b[1] for b in batch]
+    return out_batch, out_tags[0]
+
 def dump_exp_inf(args):
     #open logger
 
@@ -113,14 +119,14 @@ def main():
                 args.height, args.width, args.batch_size, args.workers)
 
 
-    model = models.create(args.arch, n_classes = 63)
+    model = models.create(args.arch, n_classes = 22)
 
     if args.gpu is not None:
         model = nn.DataParallel(model).cuda(args.gpu)
-        criterion = nn.CrossEntropyLoss().cuda(args.gpu)
+        criterion = nn.MultiLabelSoftMarginLoss().cuda(args.gpu)
     else:
         model = nn.DataParallel(model)
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.MultiLabelSoftMarginLoss()
 
     #model = nn.DataParallel(model)
     
@@ -163,8 +169,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
-    top1 = AverageMeter()
-    top5 = AverageMeter()
+    topk = [AverageMeter() for i in range(4)]
 
     # switch to train mode
     model.train()
@@ -175,7 +180,9 @@ def train(train_loader, model, criterion, optimizer, epoch):
         data_time.update(time.time() - end)
         if input.dim() > 4:
             input = input.reshape(input.shape[0] * input.shape[1], input.shape[2], input.shape[3], input.shape[4])
-            target = target.reshape(target.shape[0] * target.shape[1])
+            #target  = target.float()
+            target = target.reshape(target.shape[0] * target.shape[1], target.shape[2]).float()
+            #target = torch.from_numpy(target).float()
 
         if args.gpu is not None:
             input = input.cuda(args.gpu, non_blocking=True)
@@ -183,13 +190,14 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         # compute output
         output = model(input)
+        #print(target.shape, output.shape)
         loss = criterion(output, target)
 
         # measure accuracy and record loss
-        prec1, prec5 = accuracy(output, target, topk=(1, 5))
+        prec = accuracy(output, target, topk=4)
+        for i in range(4):
+            topk[i].update(prec[i], input.size(0))
         losses.update(loss.item(), input.size(0))
-        top1.update(prec1[0], input.size(0))
-        top5.update(prec5[0], input.size(0))
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -204,17 +212,19 @@ def train(train_loader, model, criterion, optimizer, epoch):
             print('Epoch: [{0}][{1}/{2}]\t'
                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                 'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                'Loss {loss.val:.4f} ({loss.avg:.4f})\n'
                 'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                'Prec@2 {top2.val:.3f} ({top2.avg:.3f})\t'
+                'Prec@3 {top3.val:.3f} ({top3.avg:.3f})\t'
+                'Prec@4 {top4.val:.3f} ({top4.avg:.3f})\t'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, top1=top1, top5=top5))
+                data_time=data_time, loss=losses, top1=topk[0], top2=topk[1],
+                top3=topk[2], top4=topk[3]))
 
 def validate(val_loader, model, criterion):
     batch_time = AverageMeter()
     losses = AverageMeter()
-    top1 = AverageMeter()
-    top5 = AverageMeter()
+    topk = [AverageMeter() for i in range(4)]
 
     # switch to evaluate mode
     model.eval()
@@ -224,17 +234,17 @@ def validate(val_loader, model, criterion):
         for i, (input, target) in enumerate(val_loader):
             if args.gpu is not None:
                 input = input.cuda(args.gpu, non_blocking=True)
-            target = target.cuda(args.gpu, non_blocking=True)
-
+                target = target.cuda(args.gpu, non_blocking=True)
+            target = target.float()
             # compute output
             output = model(input)
             loss = criterion(output, target)
 
             # measure accuracy and record loss
-            prec1, prec5 = accuracy(output, target, topk=(1, 5))
+            prec = accuracy(output, target, topk=4)
+            for i in range(4):
+                topk[i].update(prec[i], input.size(0))
             losses.update(loss.item(), input.size(0))
-            top1.update(prec1[0], input.size(0))
-            top5.update(prec5[0], input.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -243,37 +253,43 @@ def validate(val_loader, model, criterion):
             if i % args.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
                     'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                    'Loss {loss.val:.4f} ({loss.avg:.4f})\n'
                     'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                    'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                    i, len(val_loader), batch_time=batch_time, loss=losses,
-                    top1=top1, top5=top5))
+                    'Prec@2 {top2.val:.3f} ({top2.avg:.3f})\t'
+                    'Prec@3 {top3.val:.3f} ({top3.avg:.3f})\t'
+                    'Prec@4 {top4.val:.3f} ({top4.avg:.3f})\t'.format(
+                    i, len(val_loader), batch_time=batch_time,
+                    loss=losses, top1=topk[0], top2=topk[1],
+                    top3=topk[2], top4=topk[3]))
 
-        print(' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f}'
-            .format(top1=top1, top5=top5))
+        print(' * Prec@1 {top1.avg:.3f} Prec@2 {top2.avg:.3f} Prec@3 {top3.avg:.3f} Prec@4 {top4.avg:.3f}'
+            .format(top1=topk[0], top2=topk[1], top3=topk[2], top4=topk[3]))
 
-    return top1.avg
+    return topk[0].avg
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, 'model_best.pth.tar')
 
-def accuracy(output, target, topk=(1,)):
-    """Computes the precision@k for the specified values of k"""
-    with torch.no_grad():
-        maxk = max(topk)
-        batch_size = target.size(0)
+def accuracy(outputs, tags, topk=5):
+    res = np.zeros(topk)
+    for i in range(outputs.shape[0]):
+        res += ch_metric(outputs[i], tags[i], topk)
+    res /= outputs.shape[0]
 
-        _, pred = output.topk(maxk, 1, True, True)
-        pred = pred.t()
-        correct = pred.eq(target.view(1, -1).expand_as(pred))
+    return res 
 
-        res = []
-        for k in topk:
-            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
-            res.append(correct_k.mul_(100.0 / batch_size))
-        return res
+def ch_metric(output, tags, topk):
+    y = tags.nonzero().numpy().flatten()
+    y = set(y)
+    res = np.zeros(topk)
+    for i in range(1, topk + 1):
+        _, pred = output.topk(i)
+        pred = set(pred.numpy())
+        res[i - 1] = len(set.intersection(pred, y)) / len(set.union(pred, y))
+    return res
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="network training")
