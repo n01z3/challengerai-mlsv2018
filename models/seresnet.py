@@ -15,12 +15,13 @@ class SE_ResNet(nn.Module):
         101: pretrainedmodels.models.senet.se_resnet101,
     }
 
-    def __init__(self, depth, pretrained=True, dropout = 0, n_classes = 1000, cut_at_pooling=False):
+    def __init__(self, depth, pretrained=True, dropout = 0, n_classes = 1000, cut_at_pooling=False, features = False):
         super(SE_ResNet, self).__init__()
 
         self.base = SE_ResNet.__factory[depth](pretrained='imagenet')
         self.stop_layer = SE_ResNet
         self.cut_at_pooling = cut_at_pooling
+        self.features = features
 
         if not self.cut_at_pooling:
             self.dropout = dropout
@@ -47,11 +48,17 @@ class SE_ResNet(nn.Module):
 
         x = F.avg_pool2d(x, x.size()[2:])
         x = x.view(x.size(0), -1)
-
-        if self.dropout > 0:
-            x = self.drop(x)
-        if self.num_classes > 0:
+        
+                
+        if not self.training and self.features:
+            return x
+        elif not self.training and not self.features:
             x = self.classifier(x)
+        else:
+            if self.dropout > 0:
+                x = self.drop(x)
+            if self.num_classes > 0:
+                x = self.classifier(x)
         return x
 
 def se_resnet50(weigths = None, gpu = True, **kwargs):
