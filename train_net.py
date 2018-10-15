@@ -178,10 +178,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
     for i, (input, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
+        target = target.float()
         if input.dim() > 4:
             input = input.reshape(input.shape[0] * input.shape[1], input.shape[2], input.shape[3], input.shape[4])
             #target  = target.float()
-            target = target.reshape(target.shape[0] * target.shape[1], target.shape[2]).float()
+            target = target.reshape(target.shape[0] * target.shape[1], target.shape[2])
             #target = torch.from_numpy(target).float()
 
         if args.gpu is not None:
