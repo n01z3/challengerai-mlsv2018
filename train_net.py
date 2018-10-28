@@ -119,7 +119,7 @@ def main():
                 args.height, args.width, args.batch_size, args.workers)
 
 
-    model = models.create(args.arch, n_classes = 22)
+    model = models.create(args.arch, n_classes = 63)
 
     if args.gpu is not None:
         model = nn.DataParallel(model).cuda(args.gpu)
