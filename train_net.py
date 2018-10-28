@@ -119,7 +119,7 @@ def main():
                 args.height, args.width, args.batch_size, args.workers)
 
 
-    model = models.create(args.arch, n_classes = 63)
+    model = models.create(args.arch, n_classes = 22)
 
     if args.gpu is not None:
         model = nn.DataParallel(model).cuda(args.gpu)
@@ -235,6 +235,10 @@ def validate(val_loader, model, criterion):
     with torch.no_grad():
         end = time.time()
         for i, (input, target) in enumerate(val_loader):
+            if input.dim() > 4:
+                input = input.reshape(input.shape[0] * input.shape[1], input.shape[2], input.shape[3], input.shape[4])
+                #target  = target.float()
+                target = target.reshape(target.shape[0] * target.shape[1], target.shape[2])
             if args.gpu is not None:
                 input = input.cuda(args.gpu, non_blocking=True)
                 target = target.cuda(args.gpu, non_blocking=True)
@@ -276,7 +280,7 @@ def validate(val_loader, model, criterion):
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
+        shutil.copyfile(filename, osp.join(working_dir, args.logs_dir, 'model_best.pth.tar'))
 
 def accuracy(outputs, tags, topk=5):
     res = np.zeros(topk)
