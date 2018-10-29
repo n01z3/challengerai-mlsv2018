@@ -70,7 +70,7 @@ def main(args):
                  args.width, args.batch_size, args.workers, args.frames_mode)
 
 
-    model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 22, features = True)
+    model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 63, features = True)
 
     if args.gpu:
         model = nn.DataParallel(model).cuda()
