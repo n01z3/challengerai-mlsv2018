@@ -109,8 +109,8 @@ def main(args):
             if args.gpu:
                 output = output.cpu()
             prec = accuracy(output, tags, 4) 
-            for i in range(4):
-                topk[i].update(prec[i])
+            for k in range(4):
+                topk[k].update(prec[k])
 
             if i % args.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
