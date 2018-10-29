@@ -166,9 +166,13 @@ class VideoTrainPreprocessor(object):
                         return frame
                         
 
+#mode example:
+#all_frames
+#first_frame
+#random_frames
 
 class VideoTestPreprocessor(VideoTrainPreprocessor):
-    def __init__(self, data_dir, labels, num_frames = 1, transform = None):
+    def __init__(self, data_dir, labels, num_frames = 10, transform = None, mode = "random_frames"):
         super(VideoTestPreprocessor, self).__init__(data_dir, labels, num_frames, transform)
         self.data_dir = data_dir
         self.labels = labels
@@ -176,6 +180,7 @@ class VideoTestPreprocessor(VideoTrainPreprocessor):
         self.num_frames = num_frames
         #self.cap = cv2.VideoCapture()
         self.current_idx = None
+        self.mode = mode
 
     def _get_multi_items(self, index):
         #got video index        
@@ -198,9 +203,19 @@ class VideoTestPreprocessor(VideoTrainPreprocessor):
         #get video stream
         video_stream = next(s for s in cap.streams if s.type == 'video')
 
-        if self.num_frames == 1:
-            #make it stable for now
-            img = self._get_single_item(0, cap, video_stream, 0)
-   
-            return img, tags
-            #return img, int(tag)
+        n_frames = int(video_stream.frames) - 13
+        #some videos are too short
+        if n_frames >= 0:
+            n_frames = int(video_stream.frames)
+
+        if self.mode == "first_frame":
+            return self._get_single_item(0, cap, video_stream, 0), tags
+        elif self.mode == "random_frames":
+            t = np.random.choice(n_frames, size=self.num_frames)
+            t = np.sort(t)
+            frames = torch.stack([self._get_single_item(idx, cap, video_stream, self.num_frames) for idx in t])
+            #print(frames)
+            return frames, tags
+        elif self.mode == "all_frames":
+            frames = torch.stack([self._get_single_item(idx, cap, video_stream, self.num_frames) for idx in range(n_frames)])
+            return frames, tags

@@ -29,7 +29,7 @@ def collate_batch(batch):
     out_tags = [b[1] for b in batch]
     return out_batch, out_tags
 
-def get_data(data_dir, ann_file, height, width, batch_size, workers):
+def get_data(data_dir, ann_file, height, width, batch_size, workers, frames_mode):
 
     normalizer = T.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225])
@@ -50,9 +50,9 @@ def get_data(data_dir, ann_file, height, width, batch_size, workers):
 
 
     data_loader = DataLoader(
-        VideoTestPreprocessor(data_dir, labels, transform=test_transformer),
-        batch_size=batch_size, num_workers=workers,
-        shuffle=False, pin_memory=True, collate_fn=collate_batch)
+        VideoTestPreprocessor(data_dir, labels, transform=test_transformer, mode = frames_mode),
+        num_workers=workers,
+        shuffle=False, pin_memory=True)
 
     return data_loader
 
@@ -62,13 +62,15 @@ def main(args):
     torch.manual_seed(args.seed)
     cudnn.benchmark = False
     cudnn.enabled = True
+
+    batch_size = args.batch_size if args.frames_mode == 'single_frame' else 64
  
     data_loader = \
         get_data(args.data_dir, args.ann_file, args.height,
-                 args.width, args.batch_size, args.workers)
+                 args.width, args.batch_size, args.workers, args.frames_mode)
 
 
-    model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 63)
+    model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 22, features = True)
 
     if args.gpu:
         model = nn.DataParallel(model).cuda()
@@ -76,48 +78,68 @@ def main(args):
         model = nn.DataParallel(model)
     model.eval()
 
+    topk = [AverageMeter() for i in range(4)]
+
     print(model)
-    acc = AverageMeter()
+    #acc = AverageMeter()
 
     with torch.no_grad():
-        for i, (input, tags) in enumerate(data_loader):
+        for i, (inputs, tags) in enumerate(data_loader):
             if args.gpu:
-                input = input.cuda()
-            output = torch.squeeze(model(input))
+                inputs = inputs.cuda()
+
+            if inputs.dim() > 4:
+                bs, n_frames, c, h, w = inputs.size()
+                inputs = inputs.view(-1, c, h, w)
+                inputs = torch.split(inputs, batch_size, dim = 0)
+                output = torch.stack([model(input) for input in inputs])
+                #fuse back
+                output = output.view(n_frames, -1)
+                if av_mode == 'mean':
+                    output = torch.mean(output, 0, keepdim = True)
+                elif av_mode == 'max':
+                    output = torch.max(output, 0, keepdim = True)
+            else:
+                output = torch.squeeze(model(input))
 
             if args.gpu:
                 output = output.cpu()
-            res = accuracy(output, tags, (args.topk,)) 
-            acc.update(res)
+            prec = accuracy(output, tags, 4) 
+            for i in range(4):
+                topk[i].update(prec[i])
 
             if i % args.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
-                      'Prec@1 {acc.val:.3f} ({acc.avg:.3f})\t'.format(
-                      i, len(data_loader), acc=acc))     
+                    'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                    'Prec@2 {top2.val:.3f} ({top2.avg:.3f})\t'
+                    'Prec@3 {top3.val:.3f} ({top3.avg:.3f})\t'
+                    'Prec@4 {top4.val:.3f} ({top4.avg:.3f})\t'.format(
+                    i, len(data_loader),
+                    top1=topk[0], top2=topk[1],
+                    top3=topk[2], top4=topk[3]))   
         
-        print(' * Prec@1 {acc.avg:.3f}'.format(acc=acc) )
+        print(' * Prec@1 {top1.avg:.3f}'.format(top1=topk[0]) )
 
 
-def accuracy(output, tags, topk=(5,)):
-    with torch.no_grad():
-        maxk = max(topk)
+def accuracy(outputs, tags, topk=5):
+    res = np.zeros(topk)
+    if outputs.dim == 1:
+        return ch_metric(outputs, tags, topk)
+    for i in range(outputs.shape[0]):
+        res += ch_metric(outputs[i], tags[i], topk)
+    res /= outputs.shape[0]
 
-        if len(tags) == 1:
-            return ch_metric(output, tags[0], maxk)
+    return res 
 
-        else:
-            res = 0
-            for i in range(len(tags)):
-                res += ch_metric(output[i], tags[i], maxk)
-            res /= len(tags)
-            return res
-
-def ch_metric(output, tags, maxk):
-    _, pred = output.topk(maxk)
-    pred = set(pred.numpy())
-    tags = set(tags)
-
-    return len(set.intersection(pred, tags)) / len(set.union(pred, tags))
+def ch_metric(output, tags, topk):
+    y = tags.nonzero().numpy().flatten()
+    y = set(y)
+    res = np.zeros(topk)
+    for i in range(1, topk + 1):
+        _, pred = output.topk(i)
+        pred = set(pred.numpy())
+        res[i - 1] = len(set.intersection(pred, y)) / len(set.union(pred, y))
+    return res
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Network evaluation")
@@ -136,8 +158,12 @@ if __name__ == '__main__':
     parser.add_argument('--weights', '-w', type = str, metavar = 'PATH', help='path to the checkpoint')
     parser.add_argument('--ann_file', type=str, metavar='PATH', help = "path to the annotation file")
     parser.add_argument('--data_dir', type=str, metavar='PATH', help = "path to the data folder")
-    parser.add_argument('--print-freq', '-p', default=100, type=int,
+    parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')    
+    parser.add_argument('--averaging_mode', type = str, default = 'mean',
+    choices=['mean', 'max']) 
+    parser.add_argument('--frames_mode', type = str, default = 'all_frames',
+    choices=['all_frames, first_frame', 'random_frames'])
 
     parser.add_argument('--gpu', action='store_true',
                         help="use gpu")
