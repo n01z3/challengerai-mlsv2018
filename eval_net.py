@@ -80,6 +80,10 @@ def main(args):
 
     topk = [AverageMeter() for i in range(4)]
 
+    av_mode = args.averaging_mode
+    if args.frames_mode == 'single_frame':
+        av_mode = None
+
     print(model)
     #acc = AverageMeter()
 
@@ -92,7 +96,7 @@ def main(args):
                 bs, n_frames, c, h, w = inputs.size()
                 inputs = inputs.view(-1, c, h, w)
                 inputs = torch.split(inputs, batch_size, dim = 0)
-                output = torch.stack([model(input) for input in inputs])
+                output = torch.cat([model(input) for input in inputs], dim = 0)
                 #fuse back
                 output = output.view(n_frames, -1)
                 if av_mode == 'mean':
