@@ -70,7 +70,7 @@ def main(args):
                  args.width, args.batch_size, args.workers, args.frames_mode)
 
 
-    model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 63, features = True)
+    model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 63)
 
     if args.gpu:
         model = nn.DataParallel(model).cuda()
@@ -108,6 +108,7 @@ def main(args):
 
             if args.gpu:
                 output = output.cpu()
+                tags = tags.cpu()
             prec = accuracy(output, tags, 4) 
             for k in range(4):
                 topk[k].update(prec[k])
@@ -127,7 +128,7 @@ def main(args):
 
 def accuracy(outputs, tags, topk=5):
     res = np.zeros(topk)
-    if outputs.dim == 1:
+    if outputs.dim() == 1:
         return ch_metric(outputs, tags, topk)
     for i in range(outputs.shape[0]):
         res += ch_metric(outputs[i], tags[i], topk)

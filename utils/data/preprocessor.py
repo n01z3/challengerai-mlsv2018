@@ -197,6 +197,8 @@ class VideoTestPreprocessor(VideoTrainPreprocessor):
             except (ValueError, TypeError):
                 pass
 
+        tags = self.mlb.transform([tags])[0]
+        tags = tags.reshape(1, tags.shape[0])
         fpath = osp.join(self.data_dir, fname)
         #open container
         cap = av.open(fpath, mode = 'r')
