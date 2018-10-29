@@ -123,10 +123,10 @@ def main():
 
     if args.gpu is not None:
         model = nn.DataParallel(model).cuda(args.gpu)
-        criterion = nn.MultiLabelSoftMarginLoss().cuda(args.gpu)
+        criterion = nn.BCEWithLogitsLoss().cuda(args.gpu)
     else:
         model = nn.DataParallel(model)
-        criterion = nn.MultiLabelSoftMarginLoss()
+        criterion = nn.BCEWithLogitsLoss()
 
     #model = nn.DataParallel(model)
     
