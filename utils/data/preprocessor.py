@@ -66,8 +66,11 @@ class TrainPreprocessor(object):
 
         return img, tag
 
+#label mode:
+#multi-class
+#single-class
 class VideoTrainPreprocessor(object):
-    def __init__(self, data_dir, labels, num_frames = 1, transform = None):
+    def __init__(self, data_dir, labels, num_frames = 1, transform = None, label_mode = 'multi-class'):
         super(VideoTrainPreprocessor, self).__init__()
         self.data_dir = data_dir
         self.labels = labels
@@ -76,8 +79,8 @@ class VideoTrainPreprocessor(object):
         #self.cap = cv2.VideoCapture()
         self.current_idx = None
         self.mlb = None
-
         self._init_binarizer()
+        self.label_mode = label_mode
 
     def __len__(self):
         return len(self.labels)
@@ -128,9 +131,11 @@ class VideoTrainPreprocessor(object):
                 tags.append(int(el))
             except (ValueError, TypeError):
                 pass
-
         #transform tags
-        tags = self.mlb.transform([tags])[0]
+        if self.label_mode == 'multi-class':
+            tags = self.mlb.transform([tags])[0]
+        elif self.label_mode == 'single-class':
+            tags = tags[0]
         fpath = osp.join(self.data_dir, fname)
 
         #open container
