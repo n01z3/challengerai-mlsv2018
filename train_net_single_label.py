@@ -120,7 +120,7 @@ def main():
                 args.height, args.width, args.batch_size, args.workers, args.label_mode)
 
 
-    model = models.create(args.arch, n_classes = 63)
+    model = models.create(args.arch, n_classes = 63, last_stride = 1)
 
     model = nn.DataParallel(model)
     criterion = nn.CrossEntropyLoss()
@@ -128,7 +128,7 @@ def main():
     if args.gpu is not None:
         model = model.cuda(args.gpu)
         criterion = criterion.cuda(args.gpu)
-
+    print(model)
 
     #model = nn.DataParallel(model)
     
