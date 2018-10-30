@@ -51,7 +51,7 @@ def get_data(data_dir, ann_file, height, width, batch_size, workers, frames_mode
 
     data_loader = DataLoader(
         VideoTestPreprocessor(data_dir, labels, transform=test_transformer, mode = frames_mode),
-        num_workers=workers,
+        num_workers=workers, batch_size=batch_size,
         shuffle=False, pin_memory=True)
 
     return data_loader
@@ -63,7 +63,7 @@ def main(args):
     cudnn.benchmark = False
     cudnn.enabled = True
 
-    batch_size = args.batch_size if args.frames_mode == 'first_frame' else 2
+    batch_size = args.batch_size if args.frames_mode == 'first_frame' else 12
  
     data_loader = \
         get_data(args.data_dir, args.ann_file, args.height,
@@ -104,7 +104,7 @@ def main(args):
                 elif av_mode == 'max':
                     output = torch.max(output, 0, keepdim = True)
             else:
-                output = torch.squeeze(model(input))
+                output = torch.squeeze(model(inputs))
 
             if args.gpu:
                 output = output.cpu()
@@ -128,7 +128,6 @@ def main(args):
 
 def accuracy(outputs, tags, topk=5):
     res = np.zeros(topk)
-    print(tags[0])
     if outputs.dim() == 1:
         return ch_metric(outputs, tags, topk)
     for i in range(outputs.shape[0]):
@@ -138,8 +137,8 @@ def accuracy(outputs, tags, topk=5):
     return res 
 
 def ch_metric(output, tags, topk):
-    y = tags.nonzero().numpy().flatten()
-    y = set(y)
+    y = tags.numpy().flatten().nonzero()
+    y = set(y[0])
     res = np.zeros(topk)
     for i in range(1, topk + 1):
         _, pred = output.topk(i)
