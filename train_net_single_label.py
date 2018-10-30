@@ -200,9 +200,9 @@ def train(train_loader, model, criterion, optimizer, epoch, tags_crit):
 
         bins, tr_target = get_bins(n_t, target)
 
-        if args.gpu is not None:
-            tr_target = tr_target.cuda(args.gpu, non_blocking = True)
-            bins = bins.cuda(args.gpu, non_blocking = True)
+        #if args.gpu is not None:
+            #tr_target = tr_target.cuda(args.gpu, non_blocking = True)
+            #bins = bins.cuda(args.gpu, non_blocking = True)
 
         loss_t = tags_crit(n_t, bins)
 
