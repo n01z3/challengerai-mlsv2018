@@ -8,6 +8,7 @@ __factory = {
     'resnet101': resnet101,
     'se_resnet50': se_resnet50,
     'se_resnet101': se_resnet101,
+    'se_resnet_cls50': se_resnet_cls_50,
 }
 
 

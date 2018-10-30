@@ -120,10 +120,12 @@ def main():
                 args.height, args.width, args.batch_size, args.workers, args.label_mode)
 
 
-    model = models.create(args.arch, n_classes = 63, last_stride = 1)
+    model = models.create(args.arch, n_classes = 63)
 
     model = nn.DataParallel(model)
     criterion = nn.CrossEntropyLoss()
+    tags_crit = nn.MSELoss()
+    
 
     if args.gpu is not None:
         model = model.cuda(args.gpu)
@@ -149,11 +151,11 @@ def main():
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch, args.lr)
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch)
+        train(train_loader, model, criterion, optimizer, epoch, tags_crit)
         
 
         # evaluate on validation set
-        prec1 = validate(val_loader, model, criterion)
+        prec1 = validate(val_loader, model, criterion, tags_crit)
 
         # remember best prec@1 and save checkpoint
         is_best = prec1 > best_prec1
@@ -166,10 +168,11 @@ def main():
             'optimizer' : optimizer.state_dict(),
         }, is_best, filename=osp.join(working_dir, args.logs_dir, 'checkpoint.pth.tar'))
     
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, tags_crit):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
+    tag_loss = AverageMeter()
     topk = [AverageMeter() for i in range(4)]
     # switch to train mode
     model.train()
@@ -190,21 +193,34 @@ def train(train_loader, model, criterion, optimizer, epoch):
             target = target.cuda(args.gpu, non_blocking=True)
 
         # compute output
-        output = model(input)
+        output, n_t = model(input)
         if args.gpu is not None:
             output = output.cpu()
             target = target.cpu()
-        loss = criterion(output, target)
+
+        bins, tr_target = get_bins(n_t, target)
+
+        if args.gpu is not None:
+            tr_target = tr_target.cuda(args.gpu, non_blocking = True)
+            bins = bins.cuda(args.gpu, non_blocking = True)
+
+        loss_t = tags_crit(n_t, bins)
+
+
+        loss = criterion(output, tr_target.long())
+
+        final_loss = loss + 0.1 * loss_t
 
         # measure accuracy and record loss
         prec = accuracy(output, target, topk=4)
         for k in range(4):
             topk[k].update(prec[k], input.size(0))
         losses.update(loss.item(), input.size(0))
+        tag_loss.update(loss_t.item(), input.size(0))
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
-        loss.backward()
+        final_loss.backward()
         optimizer.step()
 
         # measure elapsed time
@@ -215,20 +231,22 @@ def train(train_loader, model, criterion, optimizer, epoch):
             print('Epoch: [{0}][{1}/{2}]\t'
                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                 'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                'Loss {loss.val:.4f} ({loss.avg:.4f})\n'
+                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                'Loss tag {tag_loss.val:.4f} ({tag_loss.val:.4f})\t'
                 'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                 'Prec@2 {top2.val:.3f} ({top2.avg:.3f})\t'
                 'Prec@3 {top3.val:.3f} ({top3.avg:.3f})\t'
                 'Prec@4 {top4.val:.3f} ({top4.avg:.3f})\t'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, top1=topk[0], top2=topk[1],
+                data_time=data_time, loss=losses, tag_loss = tag_loss, top1=topk[0], top2=topk[1],
                 top3=topk[2], top4=topk[3]))
 
-def validate(val_loader, model, criterion):
+def validate(val_loader, model, criterion, tags_crit):
     batch_time = AverageMeter()
     losses = AverageMeter()
     topk = [AverageMeter() for i in range(4)]
-
+    tag_loss = AverageMeter()
+    
     # switch to evaluate mode
     model.eval()
 
@@ -245,17 +263,29 @@ def validate(val_loader, model, criterion):
 
             target = target.long()
             # compute output
-            output = model(input)
-            loss = criterion(output, target)
-
-            # measure accuracy and record loss
+            output, n_t = model(input)
             if args.gpu is not None:
                 output = output.cpu()
                 target = target.cpu()
+
+            bins, tr_target = get_bins(n_t, target)
+
+            if args.gpu is not None:
+                tr_target = tr_target.cuda(args.gpu, non_blocking = True)
+                bins = bins.cuda(args.gpu, non_blocking = True)
+
+            loss_t = tags_crit(n_t, bins)
+
+
+            loss = criterion(output, tr_target.long())
+
+            final_loss = loss + 0.1 * loss_t
+
             prec = accuracy(output, target, topk=4)
             for i in range(4):
                 topk[i].update(prec[i], input.size(0))
             losses.update(loss.item(), input.size(0))
+            tag_loss.update(loss_t.item(), input.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -264,13 +294,14 @@ def validate(val_loader, model, criterion):
             if i % args.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
                     'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                    'Loss tag {tag_loss.val:.4f} ({tag_loss.val:.4f})\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\n'
                     'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                     'Prec@2 {top2.val:.3f} ({top2.avg:.3f})\t'
                     'Prec@3 {top3.val:.3f} ({top3.avg:.3f})\t'
                     'Prec@4 {top4.val:.3f} ({top4.avg:.3f})\t'.format(
                     i, len(val_loader), batch_time=batch_time,
-                    loss=losses, top1=topk[0], top2=topk[1],
+                    loss=losses, tag_loss = tag_loss, top1=topk[0], top2=topk[1],
                     top3=topk[2], top4=topk[3]))
 
         print(' * Prec@1 {top1.avg:.3f} Prec@2 {top2.avg:.3f} Prec@3 {top3.avg:.3f} Prec@4 {top4.avg:.3f}'
@@ -304,6 +335,17 @@ def ch_metric(output, tags, topk):
         res[i - 1] = len(set.intersection(pred, y)) / len(set.union(pred, y))
     return res
 
+
+def get_bins(outputs, tags):
+    bins = torch.zeros(outputs.shape[0], 1)
+    target = torch.zeros(outputs.shape[0])
+    for i in range(outputs.shape[0]):
+        #print(tags[i])
+        k = tags[i].numpy().flatten().nonzero()
+        target[i] = float(k[0][0])
+        if len(k[0]) != 1:
+            bins[i][0] = 1
+    return bins, target
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="network training")
