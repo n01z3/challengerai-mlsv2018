@@ -102,7 +102,7 @@ def main(args):
                 if av_mode == 'mean':
                     output = torch.mean(output, 1)
                 elif av_mode == 'max':
-                    output = torch.max(output, 1)
+                    output = torch.max(output, 1)[0]
             else:
                 output = torch.squeeze(model(inputs))
 
