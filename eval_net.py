@@ -95,10 +95,10 @@ def main(args):
             if inputs.dim() > 4:
                 bs, n_frames, c, h, w = inputs.size()
                 inputs = inputs.view(-1, c, h, w)
-                inputs = torch.split(inputs, args.batch_size, dim = 0)
+                inputs = torch.split(inputs, bs, dim = 0)
                 output = torch.cat([model(input) for input in inputs], dim = 0)
                 #fuse back
-                output = output.view(args.batch_size, n_frames, -1)
+                output = output.view(bs, n_frames, -1)
                 if av_mode == 'mean':
                     output = torch.mean(output, 1)
                 elif av_mode == 'max':
