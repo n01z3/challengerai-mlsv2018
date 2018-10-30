@@ -276,7 +276,7 @@ def validate(val_loader, model, criterion):
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
+        shutil.copyfile(osp.join(working_dir, args.logs_dir, filename, 'model_best.pth.tar'))
 
 def accuracy(outputs, tags, topk=5):
     res = np.zeros(topk)
@@ -287,8 +287,8 @@ def accuracy(outputs, tags, topk=5):
     return res 
 
 def ch_metric(output, tags, topk):
-    y = tags.nonzero().numpy().flatten()
-    y = set(y)
+    y = tags.numpy().flatten().nonzero()
+    y = set(y[0])
     res = np.zeros(topk)
     for i in range(1, topk + 1):
         _, pred = output.topk(i)
