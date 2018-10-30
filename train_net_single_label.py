@@ -315,7 +315,7 @@ if __name__ == '__main__':
     parser.add_argument('--height', type=int, default = 224)
     parser.add_argument('--width', type=int, default = 224)
     parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--n_frames', type = int, default = 4)
+    parser.add_argument('--n_frames', type = int, default = 1)
     # model
     parser.add_argument('-a', '--arch', type=str, default='resnet50',
                         choices=models.names())

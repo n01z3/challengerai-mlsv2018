@@ -63,7 +63,7 @@ def main(args):
     cudnn.benchmark = False
     cudnn.enabled = True
 
-    batch_size = args.batch_size if args.frames_mode == 'single_frame' else 64
+    batch_size = args.batch_size if args.frames_mode == 'first_frame' else 2
  
     data_loader = \
         get_data(args.data_dir, args.ann_file, args.height,
@@ -81,7 +81,7 @@ def main(args):
     topk = [AverageMeter() for i in range(4)]
 
     av_mode = args.averaging_mode
-    if args.frames_mode == 'single_frame':
+    if args.frames_mode == 'first_frame':
         av_mode = None
 
     print(model)
@@ -128,6 +128,7 @@ def main(args):
 
 def accuracy(outputs, tags, topk=5):
     res = np.zeros(topk)
+    print(tags[0])
     if outputs.dim() == 1:
         return ch_metric(outputs, tags, topk)
     for i in range(outputs.shape[0]):
@@ -168,7 +169,7 @@ if __name__ == '__main__':
     parser.add_argument('--averaging_mode', type = str, default = 'mean',
     choices=['mean', 'max']) 
     parser.add_argument('--frames_mode', type = str, default = 'all_frames',
-    choices=['all_frames, first_frame', 'random_frames'])
+    choices=['all_frames', 'first_frame', 'random_frames'])
 
     parser.add_argument('--gpu', action='store_true',
                         help="use gpu")
