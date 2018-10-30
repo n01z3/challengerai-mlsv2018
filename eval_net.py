@@ -63,7 +63,7 @@ def main(args):
     cudnn.benchmark = False
     cudnn.enabled = True
 
-    batch_size = args.batch_size if args.frames_mode == 'first_frame' else 12
+    
  
     data_loader = \
         get_data(args.data_dir, args.ann_file, args.height,
@@ -95,14 +95,14 @@ def main(args):
             if inputs.dim() > 4:
                 bs, n_frames, c, h, w = inputs.size()
                 inputs = inputs.view(-1, c, h, w)
-                inputs = torch.split(inputs, batch_size, dim = 0)
+                inputs = torch.split(inputs, args.batch_size, dim = 0)
                 output = torch.cat([model(input) for input in inputs], dim = 0)
                 #fuse back
-                output = output.view(n_frames, -1)
+                output = output.view(args.batch_size, n_frames, -1)
                 if av_mode == 'mean':
-                    output = torch.mean(output, 0, keepdim = True)
+                    output = torch.mean(output, 1)
                 elif av_mode == 'max':
-                    output = torch.max(output, 0, keepdim = True)
+                    output = torch.max(output, 1)
             else:
                 output = torch.squeeze(model(inputs))
 
