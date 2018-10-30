@@ -280,11 +280,7 @@ def validate(val_loader, model, criterion):
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     if is_best:
-<<<<<<< HEAD
         shutil.copyfile(filename, osp.join(working_dir, args.logs_dir, 'model_best.pth.tar'))
-=======
-        shutil.copyfile(osp.join(working_dir, args.logs_dir, filename, 'model_best.pth.tar'))
->>>>>>> d265c1c... fix bug
 
 def accuracy(outputs, tags, topk=5):
     res = np.zeros(topk)
