@@ -177,7 +177,7 @@ class VideoTrainPreprocessor(object):
 #random_frames
 
 class VideoTestPreprocessor(VideoTrainPreprocessor):
-    def __init__(self, data_dir, labels, num_frames = 10, transform = None, mode = "random_frames"):
+    def __init__(self, data_dir, labels, num_frames = 10, transform = None, mode = "random_frames", label_mode = 'multi-class'):
         super(VideoTestPreprocessor, self).__init__(data_dir, labels, num_frames, transform)
         self.data_dir = data_dir
         self.labels = labels
@@ -186,6 +186,7 @@ class VideoTestPreprocessor(VideoTrainPreprocessor):
         #self.cap = cv2.VideoCapture()
         self.current_idx = None
         self.mode = mode
+        self.label_mode = label_mode
 
     def _get_multi_items(self, index):
         #got video index        
@@ -202,8 +203,12 @@ class VideoTestPreprocessor(VideoTrainPreprocessor):
             except (ValueError, TypeError):
                 pass
 
-        tags = self.mlb.transform([tags])[0]
-        tags = tags.reshape(1, tags.shape[0])
+        #transform tags
+        if self.label_mode == 'multi-class':
+            tags = self.mlb.transform([tags])[0]
+        elif self.label_mode == 'single-class':
+            tags = tags[0]
+        #tags = tags.reshape(1, tags.shape[0])
         fpath = osp.join(self.data_dir, fname)
         #open container
         cap = av.open(fpath, mode = 'r')
