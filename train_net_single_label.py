@@ -133,7 +133,7 @@ def main():
 
     if args.gpu is not None:
         model = model.cuda(args.gpu)
-        #criterion = criterion.cuda(args.gpu)
+        criterion = criterion.cuda(args.gpu)
     print(model)
 
     #model = nn.DataParallel(model)
@@ -197,11 +197,12 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         # compute output
         output = model(input)
+        loss = criterion(output, target)
+
         if args.gpu is not None:
             output = output.cpu()
             target = target.cpu()
-        loss = criterion(output, target)
-
+    
         # measure accuracy and record loss
         prec = accuracy(output, target, topk=4)
         for k in range(4):
