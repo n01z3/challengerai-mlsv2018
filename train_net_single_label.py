@@ -7,6 +7,9 @@ import shutil
 import time
 import warnings
 
+import math
+from collections import Counter
+
 import numpy as np
 import sys
 import torch
@@ -122,8 +125,11 @@ def main():
 
     model = models.create(args.arch, n_classes = 63, last_stride = 1)
 
+
+    class_weights = create_class_weight(args.train_ann_file)
+
     model = nn.DataParallel(model)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(weight = class_weights)
 
     if args.gpu is not None:
         model = model.cuda(args.gpu)
@@ -304,6 +310,42 @@ def ch_metric(output, tags, topk):
         res[i - 1] = len(set.intersection(pred, y)) / len(set.union(pred, y))
     return res
 
+
+#def count_classes()
+
+
+def create_class_weight(ann_file, mu = 0.15):
+    print('class_weight calculation...')
+    labels = None
+    with open(ann_file) as infile:
+        labels = infile.readlines()
+    infile.close()
+
+    tags = []
+    for line in labels:
+        sp_line = line.split(",")
+        tags.append(int(sp_line[1]))
+    tags = np.asarray(tags)
+    labels_dict = dict(Counter(tags).items())
+
+
+    total = np.sum(list(labels_dict.values()))
+    keys = labels_dict.keys()
+
+    class_weight = dict()
+
+    for key in keys:
+        score = math.log(mu * total / float(labels_dict[key]))
+        class_weight[key] = score if score > 1.0 else 1.0
+    
+    weights = np.zeros(len(class_weight.keys()))
+    #print(weights)
+    for i in range(len(weights)):
+        weights[i] = class_weight[i]
+    weights = torch.from_numpy(weights).float()
+    print(weights)
+
+    return weights
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="network training")
