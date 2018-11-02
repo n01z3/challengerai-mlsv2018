@@ -133,7 +133,7 @@ def main():
 
     if args.gpu is not None:
         model = model.cuda(args.gpu)
-        criterion = criterion.cuda(args.gpu)
+        #criterion = criterion.cuda(args.gpu)
     print(model)
 
     #model = nn.DataParallel(model)
