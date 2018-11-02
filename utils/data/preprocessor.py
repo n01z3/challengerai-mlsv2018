@@ -215,7 +215,7 @@ class VideoTestPreprocessor(VideoTrainPreprocessor):
         #get video stream
         video_stream = next(s for s in cap.streams if s.type == 'video')
 
-        n_frames = int(video_stream.frames) - 13
+        n_frames = int(video_stream.frames) - 30
         #some videos are too short
         if n_frames >= 0:
             n_frames = int(video_stream.frames)
