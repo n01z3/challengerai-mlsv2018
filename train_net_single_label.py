@@ -7,8 +7,6 @@ import shutil
 import time
 import warnings
 
-import math
-from collections import Counter
 
 import numpy as np
 import sys
@@ -22,9 +20,11 @@ from utils.data.preprocessor import Preprocessor, TrainPreprocessor, VideoTrainP
 #from utils.data.sampler import RandomFramesSampler
 from utils.logging import Logger
 from utils.meters import AverageMeter
+from utils.extra_func import create_class_weight 
 
 import models
 import errno
+
 
 
 working_dir = osp.dirname(osp.abspath(__file__))
@@ -323,38 +323,7 @@ def ch_metric(output, tags, topk):
 #def count_classes()
 
 
-def create_class_weight(ann_file, mu = 0.15):
-    print('class_weight calculation...')
-    labels = None
-    with open(ann_file) as infile:
-        labels = infile.readlines()
-    infile.close()
 
-    tags = []
-    for line in labels:
-        sp_line = line.split(",")
-        tags.append(int(sp_line[1]))
-    tags = np.asarray(tags)
-    labels_dict = dict(Counter(tags).items())
-
-
-    total = np.sum(list(labels_dict.values()))
-    keys = labels_dict.keys()
-
-    class_weight = dict()
-
-    for key in keys:
-        score = math.log(mu * total / float(labels_dict[key]))
-        class_weight[key] = score if score > 1.0 else 1.0
-    
-    weights = np.zeros(len(class_weight.keys()))
-    #print(weights)
-    for i in range(len(weights)):
-        weights[i] = class_weight[i]
-    weights = torch.from_numpy(weights).float()
-    print(weights)
-
-    return weights
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="network training")

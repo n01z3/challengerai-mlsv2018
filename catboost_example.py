@@ -13,6 +13,7 @@ from catboost import CatBoostClassifier, Pool, cv
 from sklearn.metrics import accuracy_score
 
 from copy import deepcopy
+from utils.extra_func import create_class_weight 
 
 def main(args):
     #load train features
@@ -43,6 +44,8 @@ def main(args):
     y_val = val_tags.numpy().astype(int)
     n_classes = len(np.unique(y_train))
 
+    weights = create_class_weight(y_train)
+
     print ('X_train {} | y_train {} | X_val {} | y_val {}'.format(X_train.shape, y_train.shape, X_val.shape, y_val.shape))
 
 
@@ -64,7 +67,8 @@ def main(args):
     logging_level='Silent',
     learning_rate=0.02,
     iterations=2000,
-    task_type="GPU"
+    task_type="GPU",
+    class_weights=weights,
     )
 
 

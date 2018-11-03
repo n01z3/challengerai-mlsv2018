@@ -4,18 +4,7 @@ from collections import Counter
 import numpy as np
 import torch
 
-def create_class_weight(ann_file, mu = 0.15):
-    print('class_weight calculation...')
-    labels = None
-    with open(ann_file) as infile:
-        labels = infile.readlines()
-    infile.close()
-
-    tags = []
-    for line in labels:
-        sp_line = line.split(",")
-        tags.append(int(sp_line[1]))
-    tags = np.asarray(tags)
+def create_class_weight(tags, mu = 0.15):
     labels_dict = dict(Counter(tags).items())
 
 
@@ -36,3 +25,18 @@ def create_class_weight(ann_file, mu = 0.15):
     print(weights)
 
     return weights
+
+
+def read_tags_and_create_weights(ann_file, mu = 0.15):
+    labels = None
+    with open(ann_file) as infile:
+        labels = infile.readlines()
+    infile.close()
+
+    tags = []
+    for line in labels:
+        sp_line = line.split(",")
+        tags.append(int(sp_line[1]))
+    tags = np.asarray(tags)
+
+    return create_class_weight(tags)
