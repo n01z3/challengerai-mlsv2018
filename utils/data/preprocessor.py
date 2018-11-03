@@ -134,6 +134,7 @@ class VideoTrainPreprocessor(object):
         #transform tags
         if self.label_mode == 'multi-class':
             tags = self.mlb.transform([tags])[0]
+            tags = tags.reshape(1, tags.shape[0])
         elif self.label_mode == 'single-class':
             tags = tags[0]
         fpath = osp.join(self.data_dir, fname)
@@ -157,7 +158,7 @@ class VideoTrainPreprocessor(object):
         t = np.sort(t)
         frames = torch.stack([self._get_single_item(idx, cap, video_stream, num_frames) for idx in t])
         cap = None
-        tags = tags.reshape(1, tags.shape[0])
+        
         return frames, np.repeat(tags, self.num_frames, 0)
         
     def _get_single_frame(self, index, cap, video_stream, frames):

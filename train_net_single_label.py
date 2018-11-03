@@ -131,7 +131,7 @@ def main():
                 args.height, args.width, args.batch_size, args.workers, args.label_mode, args.arch)
 
 
-    model = models.create(args.arch, n_classes = 63, last_stride = 1)
+    model = models.create(args.arch, n_classes = 63, last_stride = 2)
 
     if args.mu != -1:
         class_weights = create_class_weight(args.train_ann_file)
@@ -198,7 +198,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
         if input.dim() > 4:
             input = input.reshape(input.shape[0] * input.shape[1], input.shape[2], input.shape[3], input.shape[4])
             #target  = target.float()
+            #print(target.dim >@)
+        if target.dim() == 3:
             target = target.reshape(target.shape[0] * target.shape[1], target.shape[2])
+        elif target.dim() == 2:
+            target = target.reshape(target.shape[0] * target.shape[1])
             #target = torch.from_numpy(target).float()
 
         if args.gpu is not None:
@@ -207,6 +211,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         # compute output
         output = model(input)
+
         loss = criterion(output, target)
 
         if args.gpu is not None:
@@ -255,7 +260,11 @@ def validate(val_loader, model, criterion):
             if input.dim() > 4:
                 input = input.reshape(input.shape[0] * input.shape[1], input.shape[2], input.shape[3], input.shape[4])
                 #target  = target.float()
+            if target.dim() == 3:
                 target = target.reshape(target.shape[0] * target.shape[1], target.shape[2])
+            elif target.dim() == 2:
+                target = target.reshape(target.shape[0] * target.shape[1])
+            
             if args.gpu is not None:
                 input = input.cuda(args.gpu, non_blocking=True)
                 target = target.cuda(args.gpu, non_blocking=True)
