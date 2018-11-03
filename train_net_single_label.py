@@ -57,7 +57,7 @@ def mkdir_if_missing(dir_path):
 
 def adjust_learning_rate(optimizer, epoch, default_lr):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    lr = default_lr * (0.1 ** (epoch // 30))
+    lr = default_lr * (0.5 ** (epoch // 10))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
@@ -72,7 +72,7 @@ def get_data(train_data_dir, train_ann_file, val_data_dir, val_ann_file, height,
 
     print(height)
     test_transformer = T.Compose([
-        T.Resize(320),
+        T.Resize(256),
         T.CenterCrop(height),
         T.ToTensor(),
         normalizer,
@@ -105,7 +105,7 @@ def get_data(train_data_dir, train_ann_file, val_data_dir, val_ann_file, height,
 
     val_loader = DataLoader(
         VideoTrainPreprocessor(val_data_dir, val_labels, transform=test_transformer,
-        label_mode = label_mode),
+        label_mode = label_mode, num_frames = args.n_frames),
         batch_size=batch_size, num_workers=workers,
         shuffle=False, pin_memory=True)
 
@@ -133,8 +133,10 @@ def main():
 
     model = models.create(args.arch, n_classes = 63, last_stride = 1)
 
-
-    class_weights = create_class_weight(args.train_ann_file)
+    if args.mu != -1:
+        class_weights = create_class_weight(args.train_ann_file)
+    else:
+        class_weights = None
 
     model = nn.DataParallel(model)
     criterion = nn.CrossEntropyLoss(weight = class_weights)
@@ -336,6 +338,7 @@ if __name__ == '__main__':
     parser.add_argument('--width', type=int, default = 224)
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--n_frames', type = int, default = 1)
+    parser.add_argument('--mu', type = int, default = -1, help = 'used to calculate class weights')
     # model
     parser.add_argument('-a', '--arch', type=str, default='resnet50',
                         choices=models.names())

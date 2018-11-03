@@ -21,7 +21,7 @@ def create_class_weight(tags, mu = 0.15):
     #print(weights)
     for i in range(len(weights)):
         weights[i] = class_weight[i]
-    #weights = torch.from_numpy(weights).float()
+    
     print(weights)
 
     return weights
@@ -39,4 +39,6 @@ def read_tags_and_create_weights(ann_file, mu = 0.15):
         tags.append(int(sp_line[1]))
     tags = np.asarray(tags)
 
-    return create_class_weight(tags)
+    weights = create_class_weight(tags)
+    weights = torch.from_numpy(weights).float()
+    return weights
