@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from .resnet import *
 from .seresnet import *
+from .inceptionv4 import *
 
 __factory = {
     'resnet50': resnet50,
@@ -11,6 +12,7 @@ __factory = {
     'se_resnet_cls50': se_resnet_cls_50,
     'se_resnet50_trained': se_resnet50_trained,
     'se_resnext50_32x4d': se_resnext50_32x4d,
+    'inceptionv4': inceptionv4,
 }
 
 

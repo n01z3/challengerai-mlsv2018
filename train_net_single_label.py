@@ -61,21 +61,25 @@ def adjust_learning_rate(optimizer, epoch, default_lr):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
-def get_data(train_data_dir, train_ann_file, val_data_dir, val_ann_file, height, width, batch_size, workers, label_mode):
+def get_data(train_data_dir, train_ann_file, val_data_dir, val_ann_file, height, width, batch_size, workers, label_mode, arch):
 
-    normalizer = T.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225])
+    if arch == "inceptionv4":
+        normalizer = T.Normalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225])
+    else:
+        normalizer = T.Normalize(mean=[0.5, 0.5, 0.5],
+                                std=[0.5, 0.5, 0.5])
 
-
+    print(height)
     test_transformer = T.Compose([
-        T.Resize(256),
-        T.CenterCrop(224),
+        T.Resize(320),
+        T.CenterCrop(height),
         T.ToTensor(),
         normalizer,
     ])
 
     train_transformer = T.Compose([
-        T.RandomResizedCrop(224),
+        T.RandomResizedCrop(height),
         T.RandomHorizontalFlip(),
         T.ToTensor(),
         normalizer,
@@ -115,12 +119,16 @@ def main():
     cudnn.enabled = True
 
     sys.stdout = Logger(osp.join(working_dir, args.logs_dir, 'log.txt'))
+    args.height, args.width = (299, 299) if args.arch == 'inceptionv4' else (224, 224)
+
     dump_exp_inf(args)
+
+
  
     train_loader, val_loader = \
         get_data(args.train_data_dir, args.train_ann_file, 
                 args.val_data_dir, args.val_ann_file,
-                args.height, args.width, args.batch_size, args.workers, args.label_mode)
+                args.height, args.width, args.batch_size, args.workers, args.label_mode, args.arch)
 
 
     model = models.create(args.arch, n_classes = 63, last_stride = 1)
