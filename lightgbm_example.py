@@ -38,7 +38,7 @@ def main(args):
     y_train = train_tags.numpy().astype(int)
     #print(train_features)
 
-    X_val = val_features..numpy()
+    X_val = val_features.numpy()
     y_val = val_tags.numpy().astype(int)
 
     n_classes = len(np.unique(y_train))
