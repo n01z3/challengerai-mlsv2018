@@ -21,7 +21,7 @@ def create_class_weight(tags, mu = 0.15):
     #print(weights)
     for i in range(len(weights)):
         weights[i] = class_weight[i]
-    weights = torch.from_numpy(weights).float()
+    #weights = torch.from_numpy(weights).float()
     print(weights)
 
     return weights
