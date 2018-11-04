@@ -387,9 +387,9 @@ def senet154_base(num_classes=1000, pretrained='imagenet'):
     return model
 
 
-def se_resnet50_base(num_classes=1000, pretrained='imagenet', last_stride = 2):
+def se_resnet50_base(num_classes=1000, pretrained='imagenet', last_stride = 2, input_3x3 = False):
     model = SENet(SEResNetBottleneck, [3, 4, 6, 3], groups=1, reduction=16,
-                  dropout_p=None, inplanes=64, input_3x3=False,
+                  dropout_p=None, inplanes=64, input_3x3=input_3x3,
                   downsample_kernel_size=1, downsample_padding=0,
                   num_classes=num_classes, last_stride = last_stride)
     if pretrained is not None:

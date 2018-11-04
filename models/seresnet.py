@@ -16,11 +16,11 @@ class SE_ResNet(nn.Module):
         101: pretrainedmodels.models.senet.se_resnet101,
     }
 
-    def __init__(self, depth, pretrained=True, dropout = 0.5, n_classes = 1000, cut_at_pooling=False, features = False, last_stride = 2):
+    def __init__(self, depth, pretrained=True, dropout = 0.5, n_classes = 1000, cut_at_pooling=False, features = False, last_stride = 2, input_3x3 = False):
         super(SE_ResNet, self).__init__()
 
         #self.base = SE_ResNet.__factory[depth](pretrained='imagenet')
-        self.base = se_resnet50_base(pretrained='imagenet', last_stride=last_stride)
+        self.base = se_resnet50_base(pretrained=None, last_stride=last_stride, input_3x3=input_3x3)
         self.stop_layer = SE_ResNet
         self.cut_at_pooling = cut_at_pooling
         self.features = features

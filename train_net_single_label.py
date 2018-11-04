@@ -131,7 +131,7 @@ def main():
                 args.height, args.width, args.batch_size, args.workers, args.label_mode, args.arch)
 
 
-    model = models.create(args.arch, n_classes = 63, last_stride = 2)
+    model = models.create(args.arch, n_classes = 63, last_stride = 2, input_3x3 = True)
 
     if args.mu != -1:
         class_weights = create_class_weight(args.train_ann_file)
