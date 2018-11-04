@@ -77,6 +77,14 @@ class ServerApi(object):
         
         return img
     
+    def _get_single_item(self, index, cap, video_stream, frames):
+        frame = self._get_single_frame(index, cap, video_stream, frames)
+        img = frame.to_image()
+        if self.transform is not None:
+            img = self.transform(img)
+        
+        return img
+    
     def _get_single_frame(self, index, cap, video_stream, frames):
         cap.seek(int(int((index * AV_TIME_BASE) / video_stream.average_rate)), 'frame')
         got_frame = False
@@ -97,8 +105,7 @@ class ServerApi(object):
         #print('VIDEO')
         #print(video_dir)
         #open container
-        cap = av.open(fpath, mode = 'r')
-        cap = cv2.VideoCapture(video_dir)
+        cap = av.open(video_dir, mode = 'r')
         video_stream = next(s for s in cap.streams if s.type == 'video')
         num_frames = video_stream.frames - 30
         #fix
@@ -108,9 +115,9 @@ class ServerApi(object):
 
         t = np.random.choice(num_frames, size=5)
         t = np.sort(t)
-        frames = torch.stack([self._get_single_item(idx, cap, video_stream, num_frames) for idx in t])
-        frames.to(self.device)
-        #frame = torch.unsqueeze(self._get_single_frame(cap), 0).to(self.device)
+        #frames = torch.stack([self._get_single_item(idx, cap, video_stream, num_frames) for idx in t])
+        #frames = frames.to(self.device)
+        frames = torch.unsqueeze(self._get_single_item(0, cap, video_stream, num_frames), 0).to(self.device)
         #print(frame.shape)
         #close cap
         #cap.release()
