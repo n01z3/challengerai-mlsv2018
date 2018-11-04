@@ -115,9 +115,9 @@ class ServerApi(object):
 
         t = np.random.choice(num_frames, size=5)
         t = np.sort(t)
-        #frames = torch.stack([self._get_single_item(idx, cap, video_stream, num_frames) for idx in t])
-        #frames = frames.to(self.device)
-        frames = torch.unsqueeze(self._get_single_item(0, cap, video_stream, num_frames), 0).to(self.device)
+        frames = torch.stack([self._get_single_item(idx, cap, video_stream, num_frames) for idx in t])
+        frames = frames.to(self.device)
+        #frames = torch.unsqueeze(self._get_single_item(0, cap, video_stream, num_frames), 0).to(self.device)
         #print(frame.shape)
         #close cap
         #cap.release()

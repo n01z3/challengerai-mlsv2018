@@ -6,6 +6,7 @@ from torch.nn import init
 import pretrainedmodels
 from torch import load
 from .seresnet_blocks import se_resnet50_base
+import torch
 
 __all__ = ['SE_ResNet', 'se_resnet50', 'se_resnet101', 'se_resnet50_trained']
 
@@ -59,6 +60,7 @@ class SE_ResNet(nn.Module):
         x = F.avg_pool2d(x, x.size()[2:])
         x = x.view(x.size(0), -1)
         
+        x = torch.max(x, 0, keepdim = True)[0]
                 
         if not self.training and self.features:
             return x
