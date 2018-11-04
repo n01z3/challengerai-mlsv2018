@@ -35,11 +35,14 @@ RUN pip install pretrainedmodels --no-deps
 
 RUN pip install tqdm munch
 
-
 RUN apt-get update && apt-get install nano python-qt4 -y
 
+RUN apt-get update && apt-get install libavdevice-dev libavfilter-dev -y
 
 COPY . .
+
+RUN cd /data/utils/PyAV && python setup.py install
+
 
 ###############################################
 # 以上部分用户可定制，以下部分不可删除

@@ -5,6 +5,7 @@ from torch.nn import functional as F
 from torch.nn import init
 import pretrainedmodels
 from torch import load
+from .seresnet_blocks import se_resnet50_base,
 
 __all__ = ['SE_ResNet', 'se_resnet50', 'se_resnet101', 'se_resnet50_trained']
 
@@ -15,10 +16,11 @@ class SE_ResNet(nn.Module):
         101: pretrainedmodels.models.senet.se_resnet101,
     }
 
-    def __init__(self, depth, pretrained=True, dropout = 0, n_classes = 1000, cut_at_pooling=False, features = False):
+    def __init__(self, depth, pretrained=True, dropout = 0.5, n_classes = 1000, cut_at_pooling=False, features = False, last_stride = 2):
         super(SE_ResNet, self).__init__()
 
-        self.base = SE_ResNet.__factory[depth](pretrained=None)
+        #self.base = SE_ResNet.__factory[depth](pretrained='imagenet')
+        self.base = se_resnet50_base(pretrained=none, last_stride=last_stride)
         self.stop_layer = SE_ResNet
         self.cut_at_pooling = cut_at_pooling
         self.features = features
@@ -28,6 +30,14 @@ class SE_ResNet(nn.Module):
             self.num_classes = n_classes
             
             self.out_planes = self.base.last_linear.in_features
+            self.feat = nn.Linear(self.out_planes, 2048)
+            self.feat_bn = nn.BatchNorm1d(2048)
+            #print('init by xavier')
+            init.xavier_uniform_(self.feat.weight)
+            #init.kaiming_normal_(self.feat.weight, mode='fan_out')
+            init.constant_(self.feat.bias, 0)
+            init.constant_(self.feat_bn.weight, 1)
+            init.constant_(self.feat_bn.bias, 0)
 
             if self.dropout > 0:
                 self.drop = nn.Dropout(self.dropout)
@@ -52,9 +62,10 @@ class SE_ResNet(nn.Module):
                 
         if not self.training and self.features:
             return x
-        elif not self.training and not self.features:
-            x = self.classifier(x)
         else:
+            x = self.feat(x)
+            x = self.feat_bn(x)
+            x = F.relu(x)
             if self.dropout > 0:
                 x = self.drop(x)
             if self.num_classes > 0:

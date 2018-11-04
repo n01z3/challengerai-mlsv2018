@@ -3,10 +3,12 @@
 import random
 from .seresnet import se_resnet50
 from torch import nn
+import numpy as np
 import torch
-import cv2
 from PIL import Image
 import torchvision.transforms as T
+import av
+from av import time_base as AV_TIME_BASE
 
 class ServerApi(object):
     """
@@ -74,6 +76,17 @@ class ServerApi(object):
             img = self.transform(img)
         
         return img
+    
+    def _get_single_frame(self, index, cap, video_stream, frames):
+        cap.seek(int(int((index * AV_TIME_BASE) / video_stream.average_rate)), 'frame')
+        got_frame = False
+
+        for packet in cap.demux(video_stream):
+            if not got_frame:
+                for frame in packet.decode():
+                    if frame is not None:
+                        return frame
+                        
 
     def handle(self, video_dir):
         """
@@ -83,16 +96,28 @@ class ServerApi(object):
         """
         #print('VIDEO')
         #print(video_dir)
-        #open cap
+        #open container
+        cap = av.open(fpath, mode = 'r')
         cap = cv2.VideoCapture(video_dir)
-        frame = torch.unsqueeze(self._get_single_frame(cap), 0).to(self.device)
+        video_stream = next(s for s in cap.streams if s.type == 'video')
+        num_frames = video_stream.frames - 30
+        #fix
+        if num_frames < 0:
+            num_frames = int(video_stream.frames)
+
+
+        t = np.random.choice(num_frames, size=5)
+        t = np.sort(t)
+        frames = torch.stack([self._get_single_item(idx, cap, video_stream, num_frames) for idx in t])
+        frames.to(self.device)
+        #frame = torch.unsqueeze(self._get_single_frame(cap), 0).to(self.device)
         #print(frame.shape)
         #close cap
-        cap.release()
+        #cap.release()
         #print('MODEL   ')
         #print(self.model)
-        #print('FORWARD')
-        output = torch.squeeze(self.model(frame))
+        print('FORWARD')
+        output = torch.squeeze(self.model(frames))
         _, pred = output.topk(1)
         pred = pred.cpu().numpy()[0]
 
