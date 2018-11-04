@@ -123,7 +123,7 @@ class ServerApi(object):
         #cap.release()
         #print('MODEL   ')
         #print(self.model)
-        print('FORWARD')
+        #print('FORWARD')
         output = torch.squeeze(self.model(frames))
         _, pred = output.topk(1)
         pred = pred.cpu().numpy()[0]
