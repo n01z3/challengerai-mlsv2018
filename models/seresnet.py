@@ -77,7 +77,8 @@ class SE_ResNetx4d(nn.Module):
         50: pretrainedmodels.models.senet.se_resnext50_32x4d
         }
 
-    def __init__(self, depth, pretrained=True, dropout = 0.5, n_classes = 1000, cut_at_pooling=False, features = False, last_stride = 2):
+    def __init__(self, depth, pretrained=True, dropout = 0.5, n_classes = 1000, cut_at_pooling=False, features = False, last_stride = 2,
+    aggr = None):
         super(SE_ResNetx4d, self).__init__()
 
         #self.base = SE_ResNet.__factory[depth](pretrained='imagenet')
@@ -85,6 +86,7 @@ class SE_ResNetx4d(nn.Module):
         self.stop_layer = SE_ResNetx4d
         self.cut_at_pooling = cut_at_pooling
         self.features = features
+        self.aggr = None
 
         if not self.cut_at_pooling:
             self.dropout = dropout
@@ -120,6 +122,8 @@ class SE_ResNetx4d(nn.Module):
         x = F.avg_pool2d(x, x.size()[2:])
         x = x.view(x.size(0), -1)
         
+        if self.aggr == 'max':
+            x = torch.max(x, 0, keepdim = True)[0]
                 
         if not self.training and self.features:
             return x
