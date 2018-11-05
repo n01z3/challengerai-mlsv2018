@@ -148,7 +148,7 @@ def ch_metric(output, tags, topk):
     #get prediction for the first tag 
     _, pred = output.topk(1)
     pred = set(pred.numpy())
-    res[0] = len(set.intersection(pred, set([tags[0]])) / float(len(set.union(pred, set([tags[0]])))))
+    res[0] = len(set.intersection(pred, set([tags[0]]))) / float(len(set.union(pred, set([tags[0]]))))
     if len(y) == 1:
         res[1] = res[0]
     else:
