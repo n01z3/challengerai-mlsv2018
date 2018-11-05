@@ -68,7 +68,8 @@ def main(args):
  
     data_loader = \
         get_data(args.data_dir, args.ann_file, args.height,
-                 args.width, args.batch_size, args.workers, args.frames_mode, args.label_mode)
+                 args.width, args.batch_size, args.workers, 
+                 args.frames_mode, args.n_frames, args.label_mode)
 
 
     model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 63, aggr = 'max')
