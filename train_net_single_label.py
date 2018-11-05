@@ -149,7 +149,7 @@ def main():
         start_epoch = checkpoint['epoch']
         best_prec1 = checkpoint['best_prec1']
 
-        print('=> start epoch {} best_prec1 {:1.%} '.format(start_epoch, best_prec1)
+        print('=> start epoch {} best_prec1 {:1.%} '.format(start_epoch, best_prec1))
 
     model = nn.DataParallel(model)
     criterion = nn.CrossEntropyLoss(weight = class_weights)
