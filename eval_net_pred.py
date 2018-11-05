@@ -154,7 +154,7 @@ def ch_metric(output, tags, topk):
     else:
         _, pred = output.topk(len(y))
         pred = set(pred.numpy())
-        res[1] = len(set.intersection(pred, y) / float(len(set.union(pred, y))))
+        res[1] = len(set.intersection(pred, y)) / float(len(set.union(pred, y)))
     return res
 
 if __name__ == '__main__':
