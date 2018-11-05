@@ -130,6 +130,7 @@ def main():
                 args.val_data_dir, args.val_ann_file,
                 args.height, args.width, args.batch_size, args.workers, args.label_mode, args.arch)
 
+    
 
     model = models.create(args.arch, n_classes = 63, last_stride = 2, input_3x3 = False)
 
@@ -137,6 +138,18 @@ def main():
         class_weights = create_class_weight(args.train_ann_file)
     else:
         class_weights = None
+
+
+
+
+    start_epoch = best_prec1 = 0
+    if args.resume is not None:
+        checkpoint = load_checkpoint(args.resume)
+        model = copy_state_dict(checkpoint['state_dict'], model)
+        start_epoch = checkpoint['epoch']
+        best_prec1 = checkpoint['best_prec1']
+
+        print('=> start epoch {} best_prec1 {:1.%} '.format(start_epoch, best_prec1)
 
     model = nn.DataParallel(model)
     criterion = nn.CrossEntropyLoss(weight = class_weights)
@@ -155,14 +168,14 @@ def main():
                                 weight_decay=args.weight_decay)
 
     #mkdir_if_missing(args.out_dir)
+    
 
     if args.evaluate:
         validate(val_loader, model, criterion)
         return
+    
 
-    best_prec1 = 0
-
-    for epoch in range(args.start_epoch, args.epochs):
+    for epoch in range(start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch, args.lr)
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch)
@@ -309,6 +322,14 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     if is_best:
         shutil.copyfile(filename, osp.join(working_dir, args.logs_dir, 'model_best.pth.tar'))
 
+def load_checkpoint(fpath):
+    if osp.isfile(fpath):
+        checkpoint = torch.load(fpath, map_location='cpu')
+        print("=> Loaded checkpoint '{}'".format(fpath))
+        return checkpoint
+    else:
+        raise ValueError("=> No checkpoint found at '{}'".format(fpath))
+
 def accuracy(outputs, tags, topk=5):
     res = np.zeros(topk)
     for i in range(outputs.shape[0]):
@@ -362,7 +383,7 @@ if __name__ == '__main__':
     parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
     # training configs
-    parser.add_argument('--resume', type=str, default='', metavar='PATH')
+    parser.add_argument('--resume', type=str, default=None, metavar='PATH')
     parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                     help='evaluate model on validation set')
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
