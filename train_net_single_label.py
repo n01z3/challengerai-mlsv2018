@@ -132,7 +132,7 @@ def main():
 
     
 
-    model = models.create(args.arch, n_classes = 63, last_stride = 2, input_3x3 = False)
+    model = models.create(args.arch, n_classes = 63, last_stride = 2)
 
     if args.mu != -1:
         class_weights = create_class_weight(args.train_ann_file)
@@ -145,11 +145,11 @@ def main():
     start_epoch = best_prec1 = 0
     if args.resume is not None:
         checkpoint = load_checkpoint(args.resume)
-        model = copy_state_dict(checkpoint['state_dict'], model)
+        model.load_state_dict(checkpoint['state_dict'])
         start_epoch = checkpoint['epoch']
         best_prec1 = checkpoint['best_prec1']
 
-        print('=> start epoch {} best_prec1 {:1.%} '.format(start_epoch, best_prec1))
+        print('=> start epoch {} best_prec1 {:.1%} '.format(start_epoch, best_prec1))
 
     model = nn.DataParallel(model)
     criterion = nn.CrossEntropyLoss(weight = class_weights)
