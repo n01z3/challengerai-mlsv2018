@@ -113,7 +113,7 @@ class SE_ResNetx4d(nn.Module):
             if self.dropout > 0:
                 self.drop = nn.Dropout(self.dropout)
             if self.num_classes > 0:
-                self.classifier = nn.Linear(self.out_planes, self.num_classes)
+                self.classifier = nn.Linear(1024, self.num_classes)
                 init.normal_(self.classifier.weight, std=0.001)
                 init.constant_(self.classifier.bias, 0)
 
