@@ -72,7 +72,7 @@ def main(args):
                  args.frames_mode, args.n_frames, args.label_mode)
 
 
-    model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 63, aggr = 'max')
+    model = models.create(args.arch, weights = args.weights,  gpu = args.gpu, n_classes = 63, aggr = 'max')
 
     if args.gpu:
         model = nn.DataParallel(model).cuda()
