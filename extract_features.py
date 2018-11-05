@@ -99,8 +99,10 @@ if __name__ == '__main__':
     # model
     parser.add_argument('-a', '--arch', type=str, default='resnet50',
                         choices=models.names())
+    parser.add_argument('--weigths', '-w', type = str, metavar = 'PATH', help='path to the checkpoint')
     parser.add_argument('--ann_file', type=str, metavar='PATH', help = "path to the annotation file")
     parser.add_argument('--data_dir', type=str, metavar='PATH', help = "path to the data folder")
     parser.add_argument('--out_dir', type = str, metavar='PATH', help = "path to the output folder")
+     parser.add_argument('--n_frames', type = int, default = 4)
 
     main(parser.parse_args())

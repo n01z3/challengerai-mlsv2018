@@ -29,7 +29,7 @@ def collate_batch(batch):
     out_tags = [b[1] for b in batch]
     return out_batch, out_tags
 
-def get_data(data_dir, ann_file, height, width, batch_size, workers, frames_mode):
+def get_data(data_dir, ann_file, height, width, batch_size, workers, frames_mode, n_frames, label_mode):
 
     normalizer = T.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225])
@@ -50,7 +50,8 @@ def get_data(data_dir, ann_file, height, width, batch_size, workers, frames_mode
 
 
     data_loader = DataLoader(
-        VideoTestPreprocessor(data_dir, labels, transform=test_transformer, mode = frames_mode),
+        VideoTestPreprocessor(data_dir, labels, transform=test_transformer, mode = frames_mode, 
+        num_frames = n_frames, label_mode = label_mode),
         num_workers=workers, batch_size=batch_size,
         shuffle=False, pin_memory=True)
 
@@ -67,10 +68,10 @@ def main(args):
  
     data_loader = \
         get_data(args.data_dir, args.ann_file, args.height,
-                 args.width, args.batch_size, args.workers, args.frames_mode)
+                 args.width, args.batch_size, args.workers, args.frames_mode, args.label_mode)
 
 
-    model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 63)
+    model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 63, aggr = 'max')
 
     if args.gpu:
         model = nn.DataParallel(model).cuda()
@@ -98,11 +99,7 @@ def main(args):
                 inputs = torch.split(inputs, bs, dim = 0)
                 output = torch.cat([model(input) for input in inputs], dim = 0)
                 #fuse back
-                output = output.view(bs, n_frames, -1)
-                if av_mode == 'mean':
-                    output = torch.mean(output, 1)
-                elif av_mode == 'max':
-                    output = torch.max(output, 1)[0]
+                #output = output.view(bs, n_frames, -1)
             else:
                 output = torch.squeeze(model(inputs))
 
@@ -164,12 +161,13 @@ if __name__ == '__main__':
     parser.add_argument('--ann_file', type=str, metavar='PATH', help = "path to the annotation file")
     parser.add_argument('--data_dir', type=str, metavar='PATH', help = "path to the data folder")
     parser.add_argument('--print-freq', '-p', default=10, type=int,
-                    metavar='N', help='print frequency (default: 10)')    
+                    metavar='N', help='print frequency (default: 10)')  
+    parser.add_argument('--n_frames', type = int, default = 4)  
     parser.add_argument('--averaging_mode', type = str, default = 'mean',
     choices=['mean', 'max']) 
     parser.add_argument('--frames_mode', type = str, default = 'all_frames',
     choices=['all_frames', 'first_frame', 'random_frames'])
-
+    parser.add_argument('--label_mode', type = str, default = 'single-class', choices=['single-class', 'multi-class'])
     parser.add_argument('--gpu', action='store_true',
                         help="use gpu")
     
