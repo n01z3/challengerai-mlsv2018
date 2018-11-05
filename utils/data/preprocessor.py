@@ -203,12 +203,13 @@ class VideoTestPreprocessor(VideoTrainPreprocessor):
                 tags.append(int(el))
             except (ValueError, TypeError):
                 pass
-
+        tags_ = torch.ones(3).mul_(-1)
         #transform tags
         if self.label_mode == 'multi-class':
             tags = self.mlb.transform([tags])[0]
         elif self.label_mode == 'single-class':
-            tags = tags[0]
+            for p in range(len(tags)):
+                tags_[p] = tags[p]
         #tags = tags.reshape(1, tags.shape[0])
         fpath = osp.join(self.data_dir, fname)
         #open container
@@ -222,13 +223,13 @@ class VideoTestPreprocessor(VideoTrainPreprocessor):
             n_frames = int(video_stream.frames)
 
         if self.mode == "first_frame":
-            return self._get_single_item(0, cap, video_stream, 0), tags
+            return self._get_single_item(0, cap, video_stream, 0), tags_
         elif self.mode == "random_frames":
             t = np.random.choice(n_frames, size=self.num_frames)
             t = np.sort(t)
             frames = torch.stack([self._get_single_item(idx, cap, video_stream, self.num_frames) for idx in t])
             #print(frames)
-            return frames, tags
+            return frames, tags_
         elif self.mode == "all_frames":
             frames = torch.stack([self._get_single_item(idx, cap, video_stream, self.num_frames) for idx in range(n_frames)])
-            return frames, tags
+            return frames, tags_

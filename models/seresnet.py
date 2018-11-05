@@ -49,7 +49,7 @@ class SE_ResNet(nn.Module):
                 init.constant_(self.classifier.bias, 0)
 
 
-    def forward(self, x):
+    def forward(self, x, bs = None, n_frames = None):
         for name, module in self.base._modules.items():
             if name == 'last_linear':
                 break
@@ -60,19 +60,24 @@ class SE_ResNet(nn.Module):
 
         x = F.avg_pool2d(x, x.size()[2:])
         x = x.view(x.size(0), -1)
+
+
+        features = x
+
         if self.aggr == 'max':
-            x = torch.max(x, 0, keepdim = True)[0]       
+            x = x.view(bs, n_frames, 2048)
+            x = torch.max(x, 1)[0]       
                 
+        x = self.feat(x)
+        x = self.feat_bn(x)
+        x = F.relu(x)
+        if self.dropout > 0:
+            x = self.drop(x)
+        if self.num_classes > 0:
+            x = self.classifier(x)
+        
         if not self.training and self.features:
-            return x
-        else:
-            x = self.feat(x)
-            x = self.feat_bn(x)
-            x = F.relu(x)
-            if self.dropout > 0:
-                x = self.drop(x)
-            if self.num_classes > 0:
-                x = self.classifier(x)
+            return x, features
         return x
 
 class SE_ResNetx4d(nn.Module):

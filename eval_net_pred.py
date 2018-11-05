@@ -72,7 +72,7 @@ def main(args):
                  args.frames_mode, args.n_frames, args.label_mode)
 
 
-    model = models.create(args.arch, weights = args.weights,  gpu = args.gpu, n_classes = 63, aggr = 'max')
+    model = models.create(args.arch, weights = args.weights,  gpu = args.gpu, n_classes = 63, aggr = 'max', features = True)
 
     if args.gpu:
         model = nn.DataParallel(model).cuda()
@@ -80,7 +80,7 @@ def main(args):
         model = nn.DataParallel(model)
     model.eval()
 
-    topk = [AverageMeter() for i in range(4)]
+    topk = [AverageMeter() for i in range(args.topk)]
 
     av_mode = args.averaging_mode
     if args.frames_mode == 'first_frame':
@@ -93,33 +93,38 @@ def main(args):
         for i, (inputs, tags) in enumerate(data_loader):
             if args.gpu:
                 inputs = inputs.cuda()
-
+    
             if inputs.dim() > 4:
                 bs, n_frames, c, h, w = inputs.size()
                 inputs = inputs.view(-1, c, h, w)
-                inputs = torch.split(inputs, bs, dim = 0)
-                output = torch.cat([model(input) for input in inputs], dim = 0)
+                pred, features = model(inputs, bs, n_frames)
                 #fuse back
-                #output = output.view(bs, n_frames, -1)
             else:
-                output = torch.squeeze(model(inputs))
-
+                pred, features = torch.squeeze(model(inputs))
+            pred = nn.functional.log_softmax(pred)
             if args.gpu:
-                output = output.cpu()
+                pred = pred.cpu()
+                features = features.cpu()
                 tags = tags.cpu()
-            prec = accuracy(output, tags, 4) 
-            for k in range(4):
+
+            if args.out_dir is not None:
+                torch.save(pred, osp.join(args.out_dir, 'torch_pred_{}.th'.format(i)))
+                torch.save(tags, osp.join(args.out_dir, 'torch_tags_{}.th'.format(i)))
+                torch.save(features, osp.join(args.out_dir, 'torch_features_{}.th'.format(i)))
+
+            prec = accuracy(pred, tags, args.topk) 
+
+            for k in range(args.topk):
                 topk[k].update(prec[k])
 
             if i % args.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
                     'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                     'Prec@2 {top2.val:.3f} ({top2.avg:.3f})\t'
-                    'Prec@3 {top3.val:.3f} ({top3.avg:.3f})\t'
-                    'Prec@4 {top4.val:.3f} ({top4.avg:.3f})\t'.format(
+                    'Prec@3 {top3.val:.3f} ({top3.avg:.3f})\t'.format(
                     i, len(data_loader),
                     top1=topk[0], top2=topk[1],
-                    top3=topk[2], top4=topk[3]))   
+                    top3=topk[2]))   
         
         print(' * Prec@1 {top1.avg:.3f}'.format(top1=topk[0]) )
 
@@ -135,13 +140,21 @@ def accuracy(outputs, tags, topk=5):
     return res 
 
 def ch_metric(output, tags, topk):
-    y = tags.numpy().flatten().nonzero()
-    y = set(y[0])
-    res = np.zeros(topk)
-    for i in range(1, topk + 1):
-        _, pred = output.topk(i)
+    tags = tags.numpy()
+    y = tags[np.where(tags != -1)]
+    y = set(y)
+    res = np.zeros(2)
+    #print(output)    
+    #get prediction for the first tag 
+    _, pred = output.topk(1)
+    pred = set(pred.numpy())
+    res[0] = len(set.intersection(pred, set(tags[0])) / len(set.union(pred, tags[0])))
+    if len(y) == 1:
+        res[1] = res[0]
+    else:
+        _, pred = output.topk(len(y))
         pred = set(pred.numpy())
-        res[i - 1] = len(set.intersection(pred, y)) / len(set.union(pred, y))
+        res[1] = len(set.intersection(pred, set(y)) / len(set.union(pred, y)))
     return res
 
 if __name__ == '__main__':
@@ -154,7 +167,7 @@ if __name__ == '__main__':
     parser.add_argument('--height', type=int, default = 224)
     parser.add_argument('--width', type=int, default = 224)
     parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--topk', '-t', type = int, default = 5)
+    parser.add_argument('--topk', '-t', type = int, default = 3)
     # model
     parser.add_argument('-a', '--arch', type=str, default='resnet50',
                         choices=models.names())
@@ -171,6 +184,6 @@ if __name__ == '__main__':
     parser.add_argument('--label_mode', type = str, default = 'single-class', choices=['single-class', 'multi-class'])
     parser.add_argument('--gpu', action='store_true',
                         help="use gpu")
-    
+    parser.add_argument('--out_dir', type = str, default = None, metavar='PATH', help = "path to the output folder")  
 
     main(parser.parse_args())
