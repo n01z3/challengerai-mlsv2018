@@ -5,6 +5,7 @@ from torch.nn import functional as F
 from torch.nn import init
 import pretrainedmodels
 from torch import load
+import torch
 from .seresnet_blocks import se_resnet50_base, se_resnext50_32x4d_base
 
 __all__ = ['SE_ResNet', 'se_resnet50', 'se_resnet101', 'se_resnet50_trained', 'se_resnet_cls_50', 'se_resnext50_32x4d']
@@ -16,7 +17,7 @@ class SE_ResNet(nn.Module):
         101: pretrainedmodels.models.senet.se_resnet101,
     }
 
-    def __init__(self, depth, pretrained=True, dropout = 0.5, n_classes = 1000, cut_at_pooling=False, features = False, last_stride = 2, input_3x3 = False):
+    def __init__(self, depth, pretrained=True, dropout = 0.5, n_classes = 1000, cut_at_pooling=False, features = False, last_stride = 2, input_3x3 = False, aggr = None):
         super(SE_ResNet, self).__init__()
 
         #self.base = SE_ResNet.__factory[depth](pretrained='imagenet')
@@ -24,6 +25,7 @@ class SE_ResNet(nn.Module):
         self.stop_layer = SE_ResNet
         self.cut_at_pooling = cut_at_pooling
         self.features = features
+        self.aggr = aggr
 
         if not self.cut_at_pooling:
             self.dropout = dropout
@@ -58,7 +60,8 @@ class SE_ResNet(nn.Module):
 
         x = F.avg_pool2d(x, x.size()[2:])
         x = x.view(x.size(0), -1)
-        
+        if self.aggr == 'max':
+            x = torch.max(x, 0, keepdim = True)[0]       
                 
         if not self.training and self.features:
             return x
