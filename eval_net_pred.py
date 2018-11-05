@@ -120,11 +120,9 @@ def main(args):
             if i % args.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
                     'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                    'Prec@2 {top2.val:.3f} ({top2.avg:.3f})\t'
-                    'Prec@3 {top3.val:.3f} ({top3.avg:.3f})\t'.format(
+                    'Prec@2 {top2.val:.3f} ({top2.avg:.3f})\t'.format(
                     i, len(data_loader),
-                    top1=topk[0], top2=topk[1],
-                    top3=topk[2]))   
+                    top1=topk[0], top2=topk[1]))   
         
         print(' * Prec@1 {top1.avg:.3f}'.format(top1=topk[0]) )
 
