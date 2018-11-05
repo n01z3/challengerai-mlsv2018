@@ -82,10 +82,8 @@ def main(args):
 
     topk = [AverageMeter() for i in range(args.topk)]
 
-    av_mode = args.averaging_mode
-    if args.frames_mode == 'first_frame':
-        av_mode = None
-
+    if args.out_dir is not None:
+        mkdir_if_missing(args.out_dir)
     print(model)
     #acc = AverageMeter()
 
