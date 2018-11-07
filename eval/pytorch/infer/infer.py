@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-
+import warnings
+warnings.filterwarnings("ignore")
 import random
 from .seresnet import se_resnet50, se_resnext50_32x4d
 from torch import nn
@@ -10,7 +11,7 @@ import torchvision.transforms as T
 import av
 from av import time_base as AV_TIME_BASE
 import pickle
-DOCKER_DEBUG = True
+DOCKER_DEBUG = False
 
 class ServerApi(object):
     """
@@ -176,11 +177,11 @@ class ServerApi(object):
         #print(self.model)
         if DOCKER_DEBUG:
             print('FORWARD')
-        pred, features = self.model(frames, 1, 6)
+        pred, features = self.model(frames)
         if DOCKER_DEBUG:
             print ('fordward.done')
 
-        features = features.cpu().numpy()
+        features = features.cpu().detach().numpy().reshape(1, -1)
         scaled_features = self.pca.transform(features)
         
         if DOCKER_DEBUG:
@@ -188,7 +189,7 @@ class ServerApi(object):
 
         #get svm prediction
         svm_pred = self.svm_pred(scaled_features)
-        catboost_pred = self.catboost.predict(features)
+        catboost_pred = self.catboost.predict(features)[0]
         logreg_pred = np.argmax(self.logreg.predict_proba(features), axis = 1)
 
 
@@ -200,8 +201,8 @@ class ServerApi(object):
         svm_pred = self._make_lst(svm_pred)
         logreg_pred = self._make_lst(logreg_pred)
         catboost_pred = self._make_lst(catboost_pred)
-        _, pred = output.topk(1)
-        net_pred = pred.cpu().numpy()[0]
+        _, net_pred = output.topk(1)
+        net_pred = net_pred.cpu().numpy()[0]
 
         vote = self._voting(svm_pred, logreg_pred, catboost_pred, net_pred)
 
