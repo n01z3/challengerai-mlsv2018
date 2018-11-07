@@ -132,7 +132,7 @@ class ServerApi(object):
                         return frame
 
     def svm_pred(self, feature):
-        x = self.scaler(feature)
+        x = self.scaler.transform(feature)
 
         pred = self.svm.predict(x)
         return pred
@@ -181,7 +181,7 @@ class ServerApi(object):
             print ('fordward.done')
 
         features = features.cpu().numpy()
-        scaled_features = self.pca(features)
+        scaled_features = self.pca.transform(features)
         
         if DOCKER_DEBUG:
             print('start prediction')

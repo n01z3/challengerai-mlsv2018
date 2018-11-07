@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from torch.nn import init
 import pretrainedmodels
 from torch import load
-from .seresnet_blocks import se_resnet50_base
+from .seresnet_blocks import se_resnet50_base, se_resnext50_32x4d_base
 import torch
 
 __all__ = ['SE_ResNet', 'se_resnet50', 'se_resnet101', 'se_resnet50_trained']
@@ -84,7 +84,7 @@ class SE_ResNetx4d(nn.Module):
         super(SE_ResNetx4d, self).__init__()
 
         #self.base = SE_ResNet.__factory[depth](pretrained='imagenet')
-        self.base = se_resnext50_32x4d_base(pretrained='imagenet')
+        self.base = se_resnext50_32x4d_base(pretrained=None)
         self.stop_layer = SE_ResNetx4d
         self.cut_at_pooling = cut_at_pooling
         self.features = features
