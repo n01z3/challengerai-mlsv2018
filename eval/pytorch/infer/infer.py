@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import random
-from .seresnet import se_resnet50
+from .seresnet import se_resnet50, se_resnext50_32x4d
 from torch import nn
 import numpy as np
 import torch
@@ -9,6 +9,8 @@ from PIL import Image
 import torchvision.transforms as T
 import av
 from av import time_base as AV_TIME_BASE
+import pickle
+DOCKER_DEBUG = True
 
 class ServerApi(object):
     """
@@ -23,8 +25,16 @@ class ServerApi(object):
         self.transform = None
         self.device = torch.device("cuda:{}".format(gpu_id))
         self.model = self.load_model()
+
+        self.logreg = None
+        self.catboost = None
+        self.svm = None
+        self.pca = None
+        self.scaler = None
         
         self.model.eval()
+
+        self.load_classifiers()
 
     def video_frames(self, file_dir):
         """
@@ -34,13 +44,33 @@ class ServerApi(object):
         """
         return None
 
+    def load_classifiers(self):
+        if DOCKER_DEBUG:
+            print('init classifiers')
+        with open("infer/weights/pca_model.pkl", "rb") as handle:
+            self.pca = pickle.load(handle)
+        with open("infer/weights/svm_scaler.pkl", "rb") as handle:
+            self.scaler = pickle.load(handle)
+
+        with open("infer/weights/logreg_model.pkl", "rb") as handle:
+            self.logreg = pickle.load(handle)
+        with open("infer/weights/catboost_model.pkl", "rb") as handle:
+            self.catboost = pickle.load(handle)
+        with open("infer/weights/svm_model.pkl", "rb") as handle:
+            self.svm = pickle.load(handle)
+        
+        if DOCKER_DEBUG:
+            print("init classifiers. done.")
+
+ 
     def load_model(self):
         """
         模型装载
         :param gpu_id: 装载GPU编号
         :return:
         """
-        model = se_resnet50("infer/weights/checkpoint.pth.tar", gpu = True, n_classes = 63)
+        #model = se_resnet50("infer/weights/checkpoint.pth.tar", gpu = True, n_classes = 63)
+        model = se_resnext50_32x4d("infer/weights/se_resnext_checkpoint.pth.tar", gpu = True, n_classes = 63, aggr = 'max', features = True)
         model = model.to(self.device)
 
         self._init_transformer()
@@ -85,6 +115,12 @@ class ServerApi(object):
         
         return img
     
+    def _make_lst(self, pred):
+        lst = []
+        for i in pred:
+            lst.append(int(i))
+        return lst
+    
     def _get_single_frame(self, index, cap, video_stream, frames):
         cap.seek(int(int((index * AV_TIME_BASE) / video_stream.average_rate)), 'frame')
         got_frame = False
@@ -94,7 +130,22 @@ class ServerApi(object):
                 for frame in packet.decode():
                     if frame is not None:
                         return frame
-                        
+
+    def svm_pred(self, feature):
+        x = self.scaler(feature)
+
+        pred = self.svm.predict(x)
+        return pred
+
+    def _voting(self, pred_1, pred_2, pred_3, pred_4):
+        def most_common(val1, val2, val3, val4):
+            lst = [val1, val2, val3, val4]
+            return max(set(lst), key = lst.count)
+        
+        vote = []
+        for i, j, k, t in zip(pred_1, pred_2, pred_3, pred_4):
+            vote.append(most_common(i, j, k, t))
+        return vote
 
     def handle(self, video_dir):
         """
@@ -113,7 +164,7 @@ class ServerApi(object):
             num_frames = int(video_stream.frames)
 
 
-        t = np.random.choice(num_frames, size=5)
+        t = np.random.choice(num_frames, size=6)
         t = np.sort(t)
         frames = torch.stack([self._get_single_item(idx, cap, video_stream, num_frames) for idx in t])
         frames = frames.to(self.device)
@@ -123,11 +174,40 @@ class ServerApi(object):
         #cap.release()
         #print('MODEL   ')
         #print(self.model)
-        #print('FORWARD')
-        output = torch.squeeze(self.model(frames))
-        _, pred = output.topk(1)
-        pred = pred.cpu().numpy()[0]
+        if DOCKER_DEBUG:
+            print('FORWARD')
+        pred, features = self.model(frames)
+        if DOCKER_DEBUG:
+            print ('fordward.done')
 
-        return [pred]
+        features = features.cpu().numpy()
+        scaled_features = self.pca(features)
+        
+        if DOCKER_DEBUG:
+            print('start prediction')
+
+        #get svm prediction
+        svm_pred = self.svm_pred(scaled_features)
+        catboost_pred = self.catboost.predict(features)
+        logreg_pred = np.argmax(self.logreg.predict_proba(features), axis = 1)
+
+
+        if DOCKER_DEBUG:
+            print('svm_predict', svm_pred)
+            print('catboost_predictt', catboost_pred)
+            print('logreg_predict', logreg_pred)
+
+        svm_pred = self._make_lst(svm_pred)
+        logreg_pred = self._make_lst(logreg_pred)
+        catboost_pred = self._make_lst(catboost_pred)
+        _, pred = output.topk(1)
+        net_pred = pred.cpu().numpy()[0]
+
+        vote = self._voting(svm_pred, logreg_pred, catboost_pred, net_pred)
+
+        ##pred = pred.cpu().numpy()[0]
+        if DOCKER_DEBUG:
+            print ('vote predict', vote)
+        return [vote]
 
 
