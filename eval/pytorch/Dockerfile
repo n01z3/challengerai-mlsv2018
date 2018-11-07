@@ -43,7 +43,7 @@ COPY . .
 
 RUN cd /data/utils/PyAV && python setup.py install
 
-RUN pip install scikit-learn, catboost
+RUN pip install scikit-learn catboost
 
 
 ###############################################

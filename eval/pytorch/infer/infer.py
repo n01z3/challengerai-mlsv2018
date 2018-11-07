@@ -201,7 +201,7 @@ class ServerApi(object):
         svm_pred = self._make_lst(svm_pred)
         logreg_pred = self._make_lst(logreg_pred)
         catboost_pred = self._make_lst(catboost_pred)
-        _, net_pred = output.topk(1)
+        _, net_pred = pred.topk(1)
         net_pred = net_pred.cpu().numpy()[0]
 
         vote = self._voting(svm_pred, logreg_pred, catboost_pred, net_pred)
