@@ -97,7 +97,7 @@ class SE_ResNetx4d(nn.Module):
             self.out_planes = self.base.last_linear.in_features
             self.feat = nn.Linear(self.out_planes, 1024)
             self.feat_bn = nn.BatchNorm1d(1024)
-            print('init by xavier')
+            #print('init by xavier')
             init.xavier_uniform_(self.feat.weight)
             #init.kaiming_normal_(self.feat.weight, mode='fan_out')
             init.constant_(self.feat.bias, 0)

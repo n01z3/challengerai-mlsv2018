@@ -176,7 +176,7 @@ class ServerApi(object):
         #print(self.model)
         if DOCKER_DEBUG:
             print('FORWARD')
-        pred, features = self.model(frames)
+        pred, features = self.model(frames, 1, 6)
         if DOCKER_DEBUG:
             print ('fordward.done')
 
