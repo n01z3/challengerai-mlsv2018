@@ -189,8 +189,8 @@ class ServerApi(object):
 
         #get svm prediction
         svm_pred = self.svm_pred(scaled_features)
-        catboost_pred = self.catboost.predict(features)[0]
-        logreg_pred = np.argmax(self.logreg.predict_proba(features), axis = 1)
+        catboost_pred = self.catboost.predict(scaled_features)[0]
+        logreg_pred = np.argmax(self.logreg.predict_proba(scaled_features), axis = 1)
 
 
         if DOCKER_DEBUG:

@@ -128,8 +128,9 @@ class SE_ResNetx4d(nn.Module):
         if self.aggr == 'max':
             #bs, d = x.size()
             #x = x.view(bs, n_frames, 2048)
-            features = x
+            #features = x
             x = torch.max(x, 0, keepdim = True)[0]
+            features = x
             #print(x.shape)
             
         x = self.feat(x)
