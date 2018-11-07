@@ -209,6 +209,6 @@ class ServerApi(object):
         ##pred = pred.cpu().numpy()[0]
         if DOCKER_DEBUG:
             print ('vote predict', vote)
-        return [vote]
+        return vote
 
 
