@@ -48,3 +48,13 @@ screen ./scripts/unstable/train_baseline.sh 4 se_resnet50 0.0001 128
 CUDA_VISIBLE_DEVICES=2 python eval_net.py -b 32 -a se_resnet50 -w /mnt/ssd1/easygold/challengerai-mlsv2018/logs/un_baseline_2018-10-10_16-57-05/checkpoint.pth.tar --ann_fi
 le /mnt/ssd1/dataset/short_video_validationset_annotations.txt --data_dir /mnt/ssd1/dataset/val/ -t 1 --gpu
 ```
+
+Look for frequence of tags to determine what tags often meet together. May be useful for multilabelel analysis.
+```
+python tags_analysis.py --ann_file short_video_trainingnset_annotations.txt --out_dir mnt/ssd1/dataser/train_tags_analysis
+```
+## Meta classifier
+Run meta classifier. It is based on majority voting. You can include uo to 5 single model predictions(lightgbm, catboost, log regression, neural network from pickles. Time for one prediction is printed for every model.
+```
+CUDA_VISIBLE_DEVICES=2 python infer_meta_classifier.py --train_dir /mnt/ssd1/dataset/multi_class/6_frames_train_se_resnet_merged/ --val_dir /mnt/ssd1/dataset/multi_class/6_frames_val_se_resnet_merged/ -multi_label -val_1_frame -net_pred -lgb -logreg -svm -catboost -voting 
+```
