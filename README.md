@@ -49,7 +49,8 @@ CUDA_VISIBLE_DEVICES=2 python eval_net.py -b 32 -a se_resnet50 -w /mnt/ssd1/easy
 le /mnt/ssd1/dataset/short_video_validationset_annotations.txt --data_dir /mnt/ssd1/dataset/val/ -t 1 --gpu
 ```
 
-## Look for frequence of tags to determine what tags often meet together. May be useful for multilabelel analysis.
+## Tags analysis
+Look for frequence of tags to determine what tags often meet together. May be useful for multilabelel analysis.
 ```
 python tags_analysis.py --ann_file short_video_trainingnset_annotations.txt --out_dir mnt/ssd1/dataser/train_tags_analysis
 ```
