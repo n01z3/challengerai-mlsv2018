@@ -50,7 +50,7 @@ le /mnt/ssd1/dataset/short_video_validationset_annotations.txt --data_dir /mnt/s
 ```
 
 ## Tags analysis
-Look for frequence of tags to determine what tags often meet together. May be useful for multilabelel analysis.
+Look for the frequence of tags to determine what tags often meet together. May be useful for multilabel analysis.
 ```
 python tags_analysis.py --ann_file short_video_trainingnset_annotations.txt --out_dir mnt/ssd1/dataser/train_tags_analysis
 ```
