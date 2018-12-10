@@ -138,6 +138,7 @@ def main():
 
     #mkdir_if_missing(args.out_dir)
 
+
     if args.evaluate:
         validate(val_loader, model, criterion)
         return
@@ -326,7 +327,7 @@ if __name__ == '__main__':
     parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
     # training configs
-    parser.add_argument('--resume', type=str, default='', metavar='PATH')
+    parser.add_argument('--resume', type=str, default=None, metavar='PATH')
     parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                     help='evaluate model on validation set')
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',

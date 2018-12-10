@@ -38,7 +38,7 @@ height=224
 width=224
 learning_rate=$3
 bath_size=$4
-network=se_resnet50
+network=$2
 epochs=150
 
 LOG="logs/un_baseline_single_label_random_`date +'%Y-%m-%d_%H-%M-%S'`/"

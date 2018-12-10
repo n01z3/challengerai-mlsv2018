@@ -138,6 +138,23 @@ class ServerApi(object):
         pred = self.svm.predict(x)
         return pred
 
+    def _get_frames(self, cap, video_stream, frames):
+        frames = []
+        k = 0
+        for i, frame in enumeraye(cap.decode(video=0):
+            frames.append(frame)
+            k+=1
+            if k == frames:
+                break
+        return frames
+
+    def _get_items(self, index, cap, video_stream, frames):
+        frames = self._get_frames(cap, video_stream, frames)
+        imgs = [self.transform(frame.to_image()) for frame in frames]
+
+        return imgs
+
+
     def _voting(self, pred_1, pred_2, pred_3, pred_4):
         def most_common(val1, val2, val3, val4):
             lst = [val1, val2, val3, val4]

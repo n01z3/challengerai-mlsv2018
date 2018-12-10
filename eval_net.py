@@ -29,10 +29,14 @@ def collate_batch(batch):
     out_tags = [b[1] for b in batch]
     return out_batch, out_tags
 
-def get_data(data_dir, ann_file, height, width, batch_size, workers, frames_mode):
+def get_data(data_dir, ann_file, height, width, batch_size, workers, frames_mode, arch):
 
-    normalizer = T.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225])
+    if arch == "inceptionv4":
+        normalizer = T.Normalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225])
+    else:
+        normalizer = T.Normalize(mean=[0.5, 0.5, 0.5],
+                                std=[0.5, 0.5, 0.5])
 
 
     test_transformer = T.Compose([
@@ -67,7 +71,7 @@ def main(args):
  
     data_loader = \
         get_data(args.data_dir, args.ann_file, args.height,
-                 args.width, args.batch_size, args.workers, args.frames_mode)
+                 args.width, args.batch_size, args.workers, args.frames_mode, args.arch)
 
 
     model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 63)
