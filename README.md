@@ -55,3 +55,11 @@ Run meta classifier. It is based on majority voting. You can include uo to 5 sin
 ```
 CUDA_VISIBLE_DEVICES=2 python infer_meta_classifier.py --train_dir /mnt/ssd1/dataset/multi_class/6_frames_train_se_resnet_merged/ --val_dir /mnt/ssd1/dataset/multi_class/6_frames_val_se_resnet_merged/ -multi_label -val_1_frame -net_pred -lgb -logreg -svm -catboost -voting 
 ```
+
+## Docker container
+Files required for building docker are stored [here](https://github.com/n01z3/challengerai-mlsv2018/tree/advanced_baseline/eval/pytorch).
+
+## Requirenments
+Following packages are required to run the code:
+* PyTorch
+* PyAV
