@@ -59,7 +59,7 @@ CUDA_VISIBLE_DEVICES=2 python infer_meta_classifier.py --train_dir /mnt/ssd1/dat
 ## Docker container
 Files required for building docker are stored [here](https://github.com/n01z3/challengerai-mlsv2018/tree/advanced_baseline/eval/pytorch).
 
-## Requirenments
+## Requirements
 Following packages are required to run the code:
 * PyTorch
 * PyAV
