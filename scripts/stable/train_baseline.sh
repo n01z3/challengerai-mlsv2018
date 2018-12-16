@@ -40,7 +40,7 @@ bath_size=64
 network=se_resnet50
 epochs=150
 
-LOG="logs/baseline_`date +'%Y-%m-%d_%H-%M-%S'`/"
+LOG="logs/stable_baseline_`date +'%Y-%m-%d_%H-%M-%S'`/"
 
 echo Logging output to "$LOG"
 
