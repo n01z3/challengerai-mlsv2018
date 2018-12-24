@@ -20,17 +20,13 @@ from utils.data.preprocessor import Preprocessor, TrainPreprocessor, VideoTrainP
 from utils.logging import Logger
 from utils.meters import AverageMeter
 
+from utils.extra_func import mkdir_if_missing, load_checkpoint
+
 import models
 import errno
 
 
 working_dir = osp.dirname(osp.abspath(__file__))
-
-def collate_batch(batch):
-    #print(batch)
-    out_batch = torch.stack([b[0] for b in batch], 0)
-    out_tags = [b[1] for b in batch]
-    return out_batch, out_tags[0]
 
 def dump_exp_inf(args):
     #open logger
@@ -42,14 +38,6 @@ def dump_exp_inf(args):
         f.write('{} : {} \n'.format(key, value))
 
     f.close()
-
-
-def mkdir_if_missing(dir_path):
-    try:
-        os.makedirs(dir_path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
 
 
 def adjust_learning_rate(optimizer, epoch, default_lr):
@@ -120,15 +108,10 @@ def main():
 
 
     model = models.create(args.arch, n_classes = 63)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    if args.gpu is not None:
-        model = nn.DataParallel(model).cuda(args.gpu)
-        criterion = nn.BCEWithLogitsLoss().cuda(args.gpu)
-    else:
-        model = nn.DataParallel(model)
-        criterion = nn.BCEWithLogitsLoss()
-
-    #model = nn.DataParallel(model)
+    model = nn.DataParallel(model).to(device)
+    criterion = nn.BCEWithLogitsLoss().to(device)
     
     # define loss function (criterion) and optimizer
 
@@ -136,11 +119,9 @@ def main():
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
 
-    #mkdir_if_missing(args.out_dir)
-
 
     if args.evaluate:
-        validate(val_loader, model, criterion)
+        validate(val_loader, model, criterion, device)
         return
 
     best_prec1 = 0
@@ -149,11 +130,11 @@ def main():
         adjust_learning_rate(optimizer, epoch, args.lr)
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch)
+        train(train_loader, model, criterion, optimizer, epoch, device)
         
 
         # evaluate on validation set
-        prec1 = validate(val_loader, model, criterion)
+        prec1 = validate(val_loader, model, criterion, device)
 
         # remember best prec@1 and save checkpoint
         is_best = prec1 > best_prec1
@@ -166,7 +147,7 @@ def main():
             'optimizer' : optimizer.state_dict(),
         }, is_best, filename=osp.join(working_dir, args.logs_dir, 'checkpoint.pth.tar'))
     
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, device):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -186,15 +167,14 @@ def train(train_loader, model, criterion, optimizer, epoch):
             target = target.reshape(target.shape[0] * target.shape[1], target.shape[2])
             #target = torch.from_numpy(target).float()
 
-        if args.gpu is not None:
-            input = input.cuda(args.gpu, non_blocking=True)
-            target = target.cuda(args.gpu, non_blocking=True)
+
+        input = input.to(device)
+        target = target.to(device)
 
         # compute output
         output = model(input)
-        if args.gpu is not None:
-            output = output.cpu()
-            target = target.cpu()
+        output = output.cpu()
+        target = target.cpu()
         loss = criterion(output, target)
 
         # measure accuracy and record loss
@@ -225,7 +205,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
                 data_time=data_time, loss=losses, top1=topk[0], top2=topk[1],
                 top3=topk[2], top4=topk[3]))
 
-def validate(val_loader, model, criterion):
+def validate(val_loader, model, criterion, device):
     batch_time = AverageMeter()
     losses = AverageMeter()
     topk = [AverageMeter() for i in range(4)]
@@ -240,18 +220,18 @@ def validate(val_loader, model, criterion):
                 input = input.reshape(input.shape[0] * input.shape[1], input.shape[2], input.shape[3], input.shape[4])
                 #target  = target.float()
                 target = target.reshape(target.shape[0] * target.shape[1], target.shape[2])
-            if args.gpu is not None:
-                input = input.cuda(args.gpu, non_blocking=True)
-                target = target.cuda(args.gpu, non_blocking=True)
+            
+            input = input.to(device)
+            target = target.to(device)
             target = target.float()
             # compute output
             output = model(input)
             loss = criterion(output, target)
 
             # measure accuracy and record loss
-            if args.gpu is not None:
-                output = output.cpu()
-                target = target.cpu()
+
+            output = output.cpu()
+            target = target.cpu()
             prec = accuracy(output, target, topk=4)
             for i in range(4):
                 topk[i].update(prec[i], input.size(0))
@@ -303,7 +283,7 @@ def ch_metric(output, tags, topk):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="network training")
+    parser = argparse.ArgumentParser(description="network training example")
     # data
 
 
@@ -333,8 +313,6 @@ if __name__ == '__main__':
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
     parser.add_argument('--epochs', type=int, default=150)
-    parser.add_argument('--gpu', default=None, type=int,
-                    help='GPU id to use.')
     parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
     parser.add_argument('--logs-dir', type=str, metavar='PATH',

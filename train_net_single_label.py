@@ -20,20 +20,14 @@ from utils.data.preprocessor import Preprocessor, TrainPreprocessor, VideoTrainP
 #from utils.data.sampler import RandomFramesSampler
 from utils.logging import Logger
 from utils.meters import AverageMeter
-from utils.extra_func import create_class_weight 
+from utils.extra_func import create_class_weight, mkdir_if_missing, load_checkpoint
+from utils.metrics import accuracy
 
 import models
-import errno
 
 
 
 working_dir = osp.dirname(osp.abspath(__file__))
-
-def collate_batch(batch):
-    #print(batch)
-    out_batch = torch.stack([b[0] for b in batch], 0)
-    out_tags = [b[1] for b in batch]
-    return out_batch, out_tags[0]
 
 def dump_exp_inf(args):
     #open logger
@@ -45,15 +39,6 @@ def dump_exp_inf(args):
         f.write('{} : {} \n'.format(key, value))
 
     f.close()
-
-
-def mkdir_if_missing(dir_path):
-    try:
-        os.makedirs(dir_path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
-
 
 def adjust_learning_rate(optimizer, epoch, default_lr):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
@@ -123,7 +108,7 @@ def main():
 
     dump_exp_inf(args)
 
-
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
  
     train_loader, val_loader = \
         get_data(args.train_data_dir, args.train_ann_file, 
@@ -151,12 +136,9 @@ def main():
 
         print('=> start epoch {} best_prec1 {:.1%} '.format(start_epoch, best_prec1))
 
-    model = nn.DataParallel(model)
-    criterion = nn.CrossEntropyLoss(weight = class_weights)
+    model = nn.DataParallel(model).to(device)
+    criterion = nn.CrossEntropyLoss(weight = class_weights).to(device)
 
-    if args.gpu is not None:
-        model = model.cuda(args.gpu)
-        criterion = criterion.cuda(args.gpu)
     print(model)
 
     #model = nn.DataParallel(model)
@@ -171,18 +153,18 @@ def main():
     
 
     if args.evaluate:
-        validate(val_loader, model, criterion)
+        validate(val_loader, model, criterion, device)
         return
     
 
     for epoch in range(start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch, args.lr)
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch)
+        train(train_loader, model, criterion, optimizer, epoch, device)
         
 
         # evaluate on validation set
-        prec1 = validate(val_loader, model, criterion)
+        prec1 = validate(val_loader, model, criterion, device)
 
         # remember best prec@1 and save checkpoint
         is_best = prec1 > best_prec1
@@ -195,7 +177,7 @@ def main():
             'optimizer' : optimizer.state_dict(),
         }, is_best, filename=osp.join(working_dir, args.logs_dir, 'checkpoint.pth.tar'))
     
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, device):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -218,18 +200,16 @@ def train(train_loader, model, criterion, optimizer, epoch):
             target = target.reshape(target.shape[0] * target.shape[1])
             #target = torch.from_numpy(target).float()
 
-        if args.gpu is not None:
-            input = input.cuda(args.gpu, non_blocking=True)
-            target = target.cuda(args.gpu, non_blocking=True)
+        input = input.to(device)
+        target = target.to(device)
 
         # compute output
         output = model(input)
 
         loss = criterion(output, target)
 
-        if args.gpu is not None:
-            output = output.cpu()
-            target = target.cpu()
+        output = output.cpu()
+        target = target.cpu()
     
         # measure accuracy and record loss
         prec = accuracy(output, target, topk=4)
@@ -259,7 +239,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
                 data_time=data_time, loss=losses, top1=topk[0], top2=topk[1],
                 top3=topk[2], top4=topk[3]))
 
-def validate(val_loader, model, criterion):
+def validate(val_loader, model, criterion, device):
     batch_time = AverageMeter()
     losses = AverageMeter()
     topk = [AverageMeter() for i in range(4)]
@@ -278,9 +258,9 @@ def validate(val_loader, model, criterion):
             elif target.dim() == 2:
                 target = target.reshape(target.shape[0] * target.shape[1])
             
-            if args.gpu is not None:
-                input = input.cuda(args.gpu, non_blocking=True)
-                target = target.cuda(args.gpu, non_blocking=True)
+
+            input = input.to(device)
+            target = target.to(device)
 
             target = target.long()
             # compute output
@@ -288,9 +268,9 @@ def validate(val_loader, model, criterion):
             loss = criterion(output, target)
 
             # measure accuracy and record loss
-            if args.gpu is not None:
-                output = output.cpu()
-                target = target.cpu()
+
+            output = output.cpu()
+            target = target.cpu()
             prec = accuracy(output, target, topk=4)
             for k in range(4):
                 topk[k].update(prec[k], input.size(0))
@@ -321,41 +301,6 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, osp.join(working_dir, args.logs_dir, 'model_best.pth.tar'))
-
-def load_checkpoint(fpath):
-    if osp.isfile(fpath):
-        checkpoint = torch.load(fpath, map_location='cpu')
-        print("=> Loaded checkpoint '{}'".format(fpath))
-        return checkpoint
-    else:
-        raise ValueError("=> No checkpoint found at '{}'".format(fpath))
-
-def accuracy(outputs, tags, topk=5):
-    res = np.zeros(topk)
-    for i in range(outputs.shape[0]):
-        res += ch_metric(outputs[i], tags[i], topk)
-    res /= outputs.shape[0]
-
-    return res 
-
-def ch_metric(output, tags, topk):
-    if torch.numel(tags) > 1:
-        y = tags.nonzero().numpy().flatten()
-    else:
-        y = [int(tags.numpy())]
-    y = set(y)
-    res = np.zeros(topk)
-    for i in range(1, topk + 1):
-        _, pred = output.topk(i)
-        pred = set(pred.numpy())
-        res[i - 1] = len(set.intersection(pred, y)) / len(set.union(pred, y))
-    return res
-
-
-#def count_classes()
-
-
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="network training")
@@ -389,8 +334,6 @@ if __name__ == '__main__':
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
     parser.add_argument('--epochs', type=int, default=150)
-    parser.add_argument('--gpu', default=None, type=int,
-                    help='GPU id to use.')
     parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
     parser.add_argument('--logs-dir', type=str, metavar='PATH',

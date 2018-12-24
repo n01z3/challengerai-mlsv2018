@@ -157,7 +157,6 @@ class VideoTrainPreprocessor(object):
         t = np.random.choice(num_frames, size=self.num_frames)
         t = np.sort(t)
         frames = torch.stack([self._get_single_item(idx, cap, video_stream, num_frames) for idx in t])
-        cap = None
         
         return frames, np.repeat(tags, self.num_frames, 0)
         

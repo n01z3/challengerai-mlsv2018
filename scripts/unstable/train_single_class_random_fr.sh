@@ -65,5 +65,4 @@ CUDA_VISIBLE_DEVICES=$N_GPU python train_net_single_label.py \
      --train_ann_file $TRAIN_ANN_FILE \
      --val_data_dir $VAL_DATA_DIR \
      --val_ann_file $VAL_ANN_FILE \
-     --gpu 0 \
      --n_frames 2

@@ -11,16 +11,10 @@ from torch.backends import cudnn
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
 from utils.data.preprocessor import Preprocessor
+from utils.extra_func import mkdir_if_missing
 
 import models
 import errno
-
-def mkdir_if_missing(dir_path):
-    try:
-        os.makedirs(dir_path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
 
 def get_data(data_dir, ann_file, height, width, batch_size, workers):
 
@@ -60,10 +54,10 @@ def main(args):
         get_data(args.data_dir, args.ann_file, args.height,
                  args.width, args.batch_size, args.workers)
 
-
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = models.create(args.arch, stop_layer = 'fc')
 
-    model = nn.DataParallel(model).cuda()
+    model = nn.DataParallel(model).to(device)
     #model = nn.DataParallel(model)
     model.eval()
 
@@ -73,7 +67,7 @@ def main(args):
     with torch.no_grad():
         for i, (input, fname, tag) in enumerate(data_loader):
             #print(torch.squeeze(output))
-            input = input.cuda()
+            input = input.to(device)
             output = torch.squeeze(model(input))
             tag = torch.unsqueeze(tag.float(), dim = 1)
             features = torch.cat((tag, output.cpu().float()), dim = 1)
@@ -82,8 +76,6 @@ def main(args):
                 print('[{}/{}]'.format(i, len(data_loader)))
 
             torch.save(features, osp.join(args.out_dir, 'torch_features_{}.th'.format(i)))
-
-
 
 
 if __name__ == '__main__':

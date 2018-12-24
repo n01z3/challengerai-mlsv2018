@@ -12,22 +12,11 @@ from torch.utils.data import DataLoader
 import torchvision.transforms as T
 from utils.data.preprocessor import Preprocessor, VideoTestPreprocessor
 from utils.meters import AverageMeter
+from utils.extra_func import mkdir_if_missing
 
 import models
 import errno
 
-def mkdir_if_missing(dir_path):
-    try:
-        os.makedirs(dir_path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
-
-def collate_batch(batch):
-    #print(batch)
-    out_batch = torch.stack([b[0] for b in batch], 0)
-    out_tags = [b[1] for b in batch]
-    return out_batch, out_tags
 
 def get_data(data_dir, ann_file, height, width, batch_size, workers, frames_mode, n_frames, label_mode):
 
@@ -72,12 +61,11 @@ def main(args):
                  args.frames_mode, args.n_frames, args.label_mode)
 
 
-    model = models.create(args.arch, weights = args.weights,  gpu = args.gpu, n_classes = 63, aggr = 'max', features = True)
+    model = models.create(args.arch, weights = args.weights, n_classes = 63, aggr = 'max', features = True)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    if args.gpu:
-        model = nn.DataParallel(model).cuda()
-    else:
-        model = nn.DataParallel(model)
+    model = nn.DataParallel(model).to(device)
+
     model.eval()
 
     topk = [AverageMeter() for i in range(args.topk)]
@@ -89,8 +77,8 @@ def main(args):
 
     with torch.no_grad():
         for i, (inputs, tags) in enumerate(data_loader):
-            if args.gpu:
-                inputs = inputs.cuda()
+
+            inputs = inputs.to(device)
     
             if inputs.dim() > 4:
                 bs, n_frames, c, h, w = inputs.size()
@@ -100,10 +88,10 @@ def main(args):
             else:
                 pred, features = torch.squeeze(model(inputs))
             pred = nn.functional.log_softmax(pred)
-            if args.gpu:
-                pred = pred.cpu()
-                features = features.cpu()
-                tags = tags.cpu()
+            
+            pred = pred.cpu()
+            features = features.cpu()
+            tags = tags.cpu()
 
             if args.out_dir is not None:
                 torch.save(pred, osp.join(args.out_dir, 'torch_pred_{}.th'.format(i)))
@@ -178,8 +166,6 @@ if __name__ == '__main__':
     parser.add_argument('--frames_mode', type = str, default = 'all_frames',
     choices=['all_frames', 'first_frame', 'random_frames'])
     parser.add_argument('--label_mode', type = str, default = 'single-class', choices=['single-class', 'multi-class'])
-    parser.add_argument('--gpu', action='store_true',
-                        help="use gpu")
     parser.add_argument('--out_dir', type = str, default = None, metavar='PATH', help = "path to the output folder")  
 
     main(parser.parse_args())

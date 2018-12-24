@@ -12,22 +12,12 @@ from torch.utils.data import DataLoader
 import torchvision.transforms as T
 from utils.data.preprocessor import Preprocessor, VideoTestPreprocessor
 from utils.meters import AverageMeter
+from utils.extra_func import mkdir_if_missing
+from utils.metrics import accuracy
 
 import models
 import errno
 
-def mkdir_if_missing(dir_path):
-    try:
-        os.makedirs(dir_path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
-
-def collate_batch(batch):
-    #print(batch)
-    out_batch = torch.stack([b[0] for b in batch], 0)
-    out_tags = [b[1] for b in batch]
-    return out_batch, out_tags
 
 def get_data(data_dir, ann_file, height, width, batch_size, workers, frames_mode, arch):
 
@@ -72,14 +62,12 @@ def main(args):
     data_loader = \
         get_data(args.data_dir, args.ann_file, args.height,
                  args.width, args.batch_size, args.workers, args.frames_mode, args.arch)
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    model = models.create(args.arch, weigths = args.weights, n_classes = 63)
 
-    model = models.create(args.arch, weigths = args.weights,  gpu = args.gpu, n_classes = 63)
-
-    if args.gpu:
-        model = nn.DataParallel(model).cuda()
-    else:
-        model = nn.DataParallel(model)
+    model = nn.DataParallel(model).to(device)
     model.eval()
 
     topk = [AverageMeter() for i in range(4)]
@@ -93,8 +81,7 @@ def main(args):
 
     with torch.no_grad():
         for i, (inputs, tags) in enumerate(data_loader):
-            if args.gpu:
-                inputs = inputs.cuda()
+            inputs = inputs.to(device)
 
             if inputs.dim() > 4:
                 bs, n_frames, c, h, w = inputs.size()
@@ -110,9 +97,9 @@ def main(args):
             else:
                 output = torch.squeeze(model(inputs))
 
-            if args.gpu:
-                output = output.cpu()
-                tags = tags.cpu()
+            output = output.cpu()
+            tags = tags.cpu()
+
             prec = accuracy(output, tags, 4) 
             for k in range(4):
                 topk[k].update(prec[k])
@@ -129,32 +116,9 @@ def main(args):
         
         print(' * Prec@1 {top1.avg:.3f}'.format(top1=topk[0]) )
 
-
-def accuracy(outputs, tags, topk=5):
-    res = np.zeros(topk)
-    if outputs.dim() == 1:
-        return ch_metric(outputs, tags, topk)
-    for i in range(outputs.shape[0]):
-        res += ch_metric(outputs[i], tags[i], topk)
-    res /= outputs.shape[0]
-
-    return res 
-
-def ch_metric(output, tags, topk):
-    y = tags.numpy().flatten().nonzero()
-    y = set(y[0])
-    res = np.zeros(topk)
-    for i in range(1, topk + 1):
-        _, pred = output.topk(i)
-        pred = set(pred.numpy())
-        res[i - 1] = len(set.intersection(pred, y)) / len(set.union(pred, y))
-    return res
-
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Network evaluation")
+    parser = argparse.ArgumentParser(description="Network evaluation example")
     # data
-
-
     parser.add_argument('-b', '--batch-size', type=int, default=64)
     parser.add_argument('-j', '--workers', type=int, default=4)
     parser.add_argument('--height', type=int, default = 224)
@@ -174,8 +138,6 @@ if __name__ == '__main__':
     parser.add_argument('--frames_mode', type = str, default = 'all_frames',
     choices=['all_frames', 'first_frame', 'random_frames'])
 
-    parser.add_argument('--gpu', action='store_true',
-                        help="use gpu")
     
 
     main(parser.parse_args())

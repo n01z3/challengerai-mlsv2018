@@ -3,6 +3,10 @@ import math
 from collections import Counter
 import numpy as np
 import torch
+import errno
+import os 
+
+import os.path as osp
 
 def create_class_weight(tags, mu = 0.15):
     labels_dict = dict(Counter(tags).items())
@@ -42,3 +46,19 @@ def read_tags_and_create_weights(ann_file, mu = 0.15):
     weights = create_class_weight(tags)
     weights = torch.from_numpy(weights).float()
     return weights
+
+def mkdir_if_missing(dir_path):
+    try:
+        os.makedirs(dir_path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
+
+def load_checkpoint(fpath):
+    if osp.isfile(fpath):
+        checkpoint = torch.load(fpath, map_location='cpu')
+        print("=> Loaded checkpoint '{}'".format(fpath))
+        return checkpoint
+    else:
+        raise ValueError("=> No checkpoint found at '{}'".format(fpath))
