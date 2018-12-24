@@ -70,8 +70,7 @@ class ServerApi(object):
         :param gpu_id: 装载GPU编号
         :return:
         """
-        #model = se_resnet50("infer/weights/checkpoint.pth.tar", gpu = True, n_classes = 63)
-        model = se_resnext50_32x4d("infer/weights/se_resnext_checkpoint.pth.tar", gpu = True, n_classes = 63, aggr = 'max', features = True)
+        model = se_resnext50_32x4d("infer/weights/se_resnext_checkpoint.pth.tar", n_classes = 63, aggr = 'max', features = True)
         model = model.to(self.device)
 
         self._init_transformer()
@@ -186,12 +185,7 @@ class ServerApi(object):
         t = np.sort(t)
         frames = torch.stack([self._get_single_item(idx, cap, video_stream, num_frames) for idx in t])
         frames = frames.to(self.device)
-        #frames = torch.unsqueeze(self._get_single_item(0, cap, video_stream, num_frames), 0).to(self.device)
-        #print(frame.shape)
-        #close cap
-        #cap.release()
-        #print('MODEL   ')
-        #print(self.model)
+     
         if DOCKER_DEBUG:
             print('FORWARD')
         pred, features = self.model(frames)

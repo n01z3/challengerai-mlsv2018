@@ -126,12 +126,8 @@ class SE_ResNetx4d(nn.Module):
         
         features = x
         if self.aggr == 'max':
-            #bs, d = x.size()
-            #x = x.view(bs, n_frames, 2048)
-            #features = x
             x = torch.max(x, 0, keepdim = True)[0]
             features = x
-            #print(x.shape)
             
         x = self.feat(x)
         x = self.feat_bn(x)
@@ -146,10 +142,10 @@ class SE_ResNetx4d(nn.Module):
 
     
 
-def se_resnet50(weights = None, gpu = True, **kwargs):
+def se_resnet50(weights = None,  **kwargs):
     model = SE_ResNet(50, **kwargs)
     if weights is not None:
-        if gpu:
+        if torch.cuda.is_available():
             state_dict = load(weights)['state_dict']
         else:
             state_dict = load(weights, map_location= 'cpu')['state_dict']
@@ -157,10 +153,10 @@ def se_resnet50(weights = None, gpu = True, **kwargs):
     return model
 
 
-def se_resnext50_32x4d(weights = None, gpu = True, **kwargs):
+def se_resnext50_32x4d(weights = None, **kwargs):
     model = SE_ResNetx4d(50, **kwargs)
     if weights is not None:
-        if gpu:
+        if torch.cuda.is_available():
             state_dict = load(weights)['state_dict']
         else:
             state_dict = load(weights, map_location= 'cpu')['state_dict']
