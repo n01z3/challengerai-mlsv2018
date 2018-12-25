@@ -1,5 +1,6 @@
 # challengerai-mlsv2018
 
+This is our attempt to solve real-time multi-label classification challenge organized on AiChallenger by MeiTu company.
 
 Simple baseline is composed of the following steps:
 1. Extract the first frame from each video.
